@@ -17,6 +17,26 @@ The Collective is a Dutch consultancy (domain thecollective.nu). Its framework i
 - Kai dislikes endless scrolling and "artificial" effects (a zigzag-line tension effect was rejected; the tension now comes from the orchestra itself).
 - Plain language, no jargon, short answers.
 
+## Working together (Kai and Maarten)
+
+Two people work on this site, each with their own Claude. These rules keep the work in one line.
+
+**Start of every session**
+1. Fetch the newest `main` (and the branch you are continuing, if any).
+2. Read the top block of `OVERDRACHT.md` (the latest version) and the open pull requests.
+3. Tell the person in three sentences where things stand before changing anything.
+
+**While working**
+- Never commit to `main` directly. Branch from the newest `main`: `<name>/<topic>`, e.g. `kai/nieuwe-intro`, `maarten/perf-fase4`.
+- Never start from an old local copy or a file from another Claude project: the repo is the source of truth.
+- Small, clear commits.
+
+**Finishing a version (handover)**
+- Add a block at the top of `OVERDRACHT.md` (Dutch), using the headings in that file.
+- Open a pull request to `main` with the same block as description (the template in `.github/pull_request_template.md` has the headings).
+- Never merge your own pull request: the other person reviews first. Merging = going live.
+- After the merge, tag `main` with the version (`vX.Y`), so every version can be found and restored.
+
 ## Framework (content rules)
 
 - 3 building blocks: **Plan** (the piece: what we play and the budget), **Blueprint** (the score: design of business, data, tech), **Means** (the orchestra: people, skills, tools, funding).
@@ -134,10 +154,10 @@ Measure before and after any change to the scene, the people or the frame loop: 
 
 ## Deployment (GitHub Pages)
 
-Public repo github.com/Maartenleon/the-collective-3d, served by GitHub Pages from branch `main`, folder `/ (root)`, no GitHub Actions and no build on GitHub (the token has no Workflows rights; ask before adding Actions).
+Public repo github.com/The-Collective-dot-nu/the-collective-3d (moved from Maartenleon/the-collective-3d to the shared organisation on 20 Nov 2026; old links redirect), served by GitHub Pages from branch `main`, folder `/ (root)`, no GitHub Actions and no build on GitHub (the token has no Workflows rights; ask before adding Actions).
 
-- Website: http://thecollective.nu/ (custom domain since 26 Oct 2026: `CNAME` in the root, set via GitHub; keep that file. maartenleon.github.io/the-collective-3d/ redirects there. Root `index.html` is the website itself; `site/3d.html` redirects there)
-- Model builder: https://maartenleon.github.io/the-collective-3d/site/orkest-model.html
+- Website: http://thecollective.nu/ (custom domain since 26 Oct 2026: `CNAME` in the root, set via GitHub; keep that file. The github.io address (now the-collective-dot-nu.github.io/the-collective-3d/) redirects there. Root `index.html` is the website itself; `site/3d.html` redirects there)
+- Model builder: https://thecollective.nu/site/orkest-model.html
 - Built files are committed: run `python3 bron/build.py` (and `model`) before committing; `index.html`, `site/styles.css` and `site/3d.html` are written by the build.
 - All paths relative (no leading `/`, no localhost): the site lives under the subpath `/the-collective-3d/`. Pages is case-sensitive, macOS is not: keep file names and references lowercase and identical.
 - `.nojekyll` in the root stays (no Jekyll processing). Do not move or rename folders without asking.
