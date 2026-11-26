@@ -1669,8 +1669,8 @@
     { id: "d1", name: "Run and Change", ch: 6, seq: "dims", bar: 0, hold: 3.4, dur: 2.2, cam: CAM2, panel: "dims" },
     { id: "d2", ch: 6, seq: "dims", bar: 1, hold: 3.0, dur: 2.6, cam: NARROW ? abovePanel(frame(nextBox, nextFront.clone().add(V(0.6, 0.55, 0.5)), 40, 1.15), 310) : frame(nextBox, nextFront.clone().add(V(0.6, 0.55, 0.5)), 40, 1.35), panel: "dims", late: 1 },
     // Frame 9 and 10: your organisation
-    { id: "question", name: "Your organisation", ch: 7, seq: "you", bar: 0, hold: 3.2, cam: NARROW ? K([0, 2.2, 46], [0, 2.2, -3], 28) : K([0, 1.7, 45.5], [0, 3.0, -3], 46), beats: ["question"], shade: 0.25, fore: 1 },
-    { id: "problems", ch: 7, seq: "you", bar: 1, dur: 2.4, cam: NARROW ? K([0, 13, 33], [0, -16, -3]) : K([0, 24, 46], [0, 12.5, -3]), problems: true, shade: 0.72, fw: "side", show: "pbmorc" },   // the list on dark ground: the stage below it (desktop) or up behind the framework (phones)
+    { id: "question", name: "Your organisation", ch: 7, cam: NARROW ? K([0, 2.2, 46], [0, 2.2, -3], 28) : K([0, 1.7, 45.5], [0, 3.0, -3], 46), beats: ["question"], shade: 0.25, fore: 1 },
+    { id: "problems", name: "The problems", ch: 7, cam: NARROW ? K([0, 13, 33], [0, -16, -3]) : K([0, 24, 46], [0, 12.5, -3]), problems: true, shade: 0.72, fw: "side", show: "pbmorc" },   // the list on dark ground: the stage below it (desktop) or up behind the framework (phones)
     // Part 4: The Collective. The camera rises over the bowl: tonight's concert and next season's rehearsal in one view
     { id: "c0", name: "The Collective", ch: 8, cam: CAMC, coll: 1, shade: 0.45 },
   ];
