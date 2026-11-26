@@ -9,7 +9,7 @@
 #                                                               blijft bewegen, en window.__perf met renderer, scène, camera en film; staat in .gitignore)
 #   python3 bron/build.py bake     -> bron/bake/bake.html     (de volledige pijplijn die de mensen bouwt; bron/bake/bake.py draait hem en maakt de .glb's)
 # Muzikanten: Microsoft Rocketbox avatars (MIT-licentie), voorbewerkt in bron/assets.
-import json, base64, glob, hashlib, os, shutil, struct, sys
+import io, json, base64, glob, hashlib, os, shutil, struct, sys
 ROOT = os.path.dirname(os.path.abspath(__file__))
 ASSETS = os.path.join(ROOT, "assets")
 M, S = os.path.join(ROOT, "model"), os.path.join(ROOT, "site")
@@ -21,6 +21,13 @@ for f in sorted(glob.glob(os.path.join(ASSETS, "rocketbox", "*.fbx"))): A[os.pat
 for f in sorted(glob.glob(os.path.join(ASSETS, "rocketbox", "*.jpg")) + glob.glob(os.path.join(ASSETS, "rocketbox", "*.png"))):
     n = os.path.basename(f).rsplit(".", 1)[0]; mime = "image/jpeg" if f.endswith(".jpg") else "image/png"
     T[n] = "data:" + mime + ";base64," + base64.b64encode(open(f, "rb").read()).decode()
+def webp(f):   # the people's textures as WebP: half the bytes of the original JPG/PNG at the same size (alpha kept exactly, for the hair's cut-off)
+    from PIL import Image
+    im, o = Image.open(f), io.BytesIO()
+    if f.endswith(".png"): im.convert("RGBA").save(o, "WEBP", quality=85, alpha_quality=100, method=6)
+    else: im.convert("RGB").save(o, "WEBP", quality=85, method=6)
+    return o.getvalue()
+def tex_file(k): return next(os.path.join(ASSETS, "rocketbox", k + e) for e in (".jpg", ".png") if os.path.exists(os.path.join(ASSETS, "rocketbox", k + e)))
 def pk(arr, fmt): return base64.b64encode(struct.pack("<%d%s" % (len(arr), fmt), *arr)).decode()
 def heads():
     H = json.load(open(os.path.join(ASSETS, "heads.json"))); PRE = json.load(open(os.path.join(ASSETS, "prefix.json"))); out = {}
@@ -32,6 +39,9 @@ def heads():
 def data(assets, textures, hd): return "\n  const HEADS = " + json.dumps(hd) + ";\n  const ASSETS = " + json.dumps(assets) + ";\n  const TEXTURES = " + json.dumps(textures) + ";\n"
 # the conductors are still built in the browser (one live, one at the rehearsal): only their avatar and its textures stay in the page (Business_Male_01 = m005)
 CONDUCTOR_FBX, CONDUCTOR_TEX = ["Business_Male_01"], ["m005_body", "m005_body_coat", "m005_head", "m005_opacity"]
+def body_js():   # the scene code, with where each musician's mouth and jaw are (from the bake), so body.js puts the instruments there
+    f = os.path.join(ASSETS, "anatomy.json"); anat = open(f).read() if os.path.exists(f) else "[]"
+    return "  const ANAT = " + anat + ";\n" + r(M, "body.js")
 REPO = os.path.dirname(ROOT); out_dir = os.path.join(REPO, "site"); os.makedirs(out_dir, exist_ok=True)
 REDIRECT = """<!doctype html>
 <html lang="en">
@@ -54,21 +64,21 @@ def runtime(prefix, head):   # site and model page: the baked people next to the
         people[name] = {"url": prefix + name + ".glb?v=" + hashlib.md5(b).hexdigest()[:8], "bytes": len(b)}
     icon = 'apple-touch-icon.png">\n'; assert head.count(icon) == 1   # the orchestra is preloaded right after the icons, early in the head; the audience comes after it
     head = head.replace(icon, icon + '<link rel="preload" href="%s" as="fetch" crossorigin>\n' % people["orchestra"]["url"])
-    return head, data({k: A[k] for k in CONDUCTOR_FBX}, {k: T[k] for k in CONDUCTOR_TEX}, {}) + "  const PEOPLE = " + json.dumps(people) + ";\n"
+    return head, data({k: A[k] for k in CONDUCTOR_FBX}, {k: "data:image/webp;base64," + base64.b64encode(webp(tex_file(k))).decode() for k in CONDUCTOR_TEX}, {}) + "  const PEOPLE = " + json.dumps(people) + ";\n"
 
 if target == "bake":
     head = r(M, "head.html"); a = "<script>\n(() => {"; assert head.count(a) == 1
     head = head.replace(a, '<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/exporters/GLTFExporter.js"></script>\n' + a)
-    s = head + r(M, "body.js") + r(M, "_dress_src.js") + data(A, T, heads()) + r(M, "_people_common.js") + r(M, "_people_bake.js") + "})();\n</script>\n</body>\n</html>\n"
+    s = head + body_js() + r(M, "_dress_src.js") + data(A, T, heads()) + r(M, "_people_common.js") + r(M, "_people_bake.js") + "})();\n</script>\n</body>\n</html>\n"
     out = os.path.join(ROOT, "bake", "bake.html")
 elif target == "model":
     head, d = runtime("", r(M, "head.html"))
-    s = head + r(M, "body.js") + r(M, "_dress_src.js") + d + r(M, "_people_common.js") + r(M, "_people_rest.js") + r(M, "tail.js")
+    s = head + body_js() + r(M, "_dress_src.js") + d + r(M, "_people_common.js") + r(M, "_people_rest.js") + r(M, "tail.js")
     out = os.path.join(out_dir, "orkest-model.html")
 else:
     test = target == "test"
     cfg = r(M, "head.html").split('  "use strict";\n', 1)[1]          # scène-instellingen uit het model
-    body = r(M, "body.js")
+    body = body_js()
     for line in ['  const controls = new THREE.OrbitControls(camera, canvas);\n',
                  '  controls.enableDamping = true; controls.maxPolarAngle = Math.PI * 0.49; controls.minDistance = 1.2; controls.maxDistance = 140;\n']:
         assert line in body; body = body.replace(line, "")             # op de site stuurt het verhaal de camera

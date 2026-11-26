@@ -411,8 +411,8 @@
      legs: spread = how far the feet go apart, footZ = how far forward. head: [look down, tilt to the left, turn to the left] in radians. ---------- */
   const mirX = p => V(-p.x, p.y, p.z);
   const RINSTR = {   // strings are rebuilt in this frame (no mirror), with their bows
-    "viool": (ins, h) => violinLike(ins, h, 0.48, 0),
-    "altviool": (ins, h) => violinLike(ins, h, 0.55, 0.01),
+    "viool": (ins, h, A) => violinLike(ins, h, 0.48, 0, A),
+    "altviool": (ins, h, A) => violinLike(ins, h, 0.55, 0.01, A),
     "cello": (ins, h) => {
       const pin = V(0, 0.02, 0.62), d = V(0.1, 1, -0.6).normalize(), c = refinedString(ins, pin.clone().add(d.clone().multiplyScalar(0.125)), d, V(0, 0, 1), 1, 0.125);
       const frog = c.string.clone().add(V(-0.28, 0.06, 0.04)), tip = c.string.clone().add(V(0.4, -0.06, 0.04)); refinedBow(ins, frog, tip);
@@ -428,13 +428,110 @@
                legs: { spread: 0.12, footZ: 0.42 }, head: [0.2, 0, 0.1] };
     },
   };
-  function violinLike(ins, h, k, lower) {   // violin and viola on the left collarbone, scroll forward-left, bow across the strings
-    const base = V(0.1, h + 0.655 - lower, 0.0), d = V(0.8, 0.12, 1).normalize(), c = refinedString(ins, base, d, V(-0.5, 1, 0), k);
+  function violinLike(ins, h, k, lower, A) {   // violin and viola on the left collarbone under the player's own jaw, scroll forward-left, bow across the strings
+    const jaw = A.chin.clone().add(V(0.045, -0.03, -0.045)), clav = A.neck.clone().lerp(A.lsh, 0.5).add(V(0, 0.025, 0.05));
+    const base = V(jaw.x * 0.6 + clav.x * 0.4, jaw.y - 0.04 - lower, jaw.z * 0.6 + clav.z * 0.4), d = V(0.85, 0.1, 1).normalize(), c = refinedString(ins, base, d, V(-0.55, 1, 0.05), k);
     const S = c.at(0, -0.02, 0.13), frog = S.clone().add(c.X.clone().multiplyScalar(0.34)).add(c.Z.clone().multiplyScalar(0.01)), tip = S.clone().add(c.X.clone().multiplyScalar(-0.38));
     refinedBow(ins, frog, tip);
-    return { L: { t: c.at(0.0, 0.52, -0.06).add(c.X.clone().multiplyScalar(0.02)), dir: c.Z.clone().multiplyScalar(0.8).add(c.d.clone().multiplyScalar(-0.3)).add(c.X.clone().multiplyScalar(-0.3)), palm: c.X.clone().multiplyScalar(-1), curl: 0.6, pole: V(0.2, -1, 0) },
-             R: { t: frog.clone().add(c.Z.clone().multiplyScalar(0.06)).add(c.X.clone().multiplyScalar(0.05)), dir: c.Z.clone().multiplyScalar(-0.7).add(c.X.clone().multiplyScalar(-0.6)).add(c.d.clone().multiplyScalar(0.2)), palm: c.Z.clone().multiplyScalar(-1).add(c.d.clone().multiplyScalar(-0.3)), curl: 0.8, pole: V(-1, -0.6, -0.2) },
-             legs: { spread: 0.06, footZ: 0.48 }, head: [0.3, 0.3, 0.45] };
+    return { L: { t: c.at(-0.02, 0.5, -0.04).add(c.Z.clone().multiplyScalar(-0.03)), dir: c.Z.clone().multiplyScalar(0.7).add(c.d.clone().multiplyScalar(0.25)).add(c.X.clone().multiplyScalar(-0.5)), palm: c.X.clone().multiplyScalar(-0.7).add(c.Z.clone().multiplyScalar(0.5)), curl: 0.8, pole: V(-0.1, -1, 0.1) },
+             R: { t: frog.clone().add(c.Z.clone().multiplyScalar(0.05)).add(c.X.clone().multiplyScalar(0.06)), dir: c.Z.clone().multiplyScalar(-0.6).add(c.X.clone().multiplyScalar(-0.75)), palm: c.Z.clone().multiplyScalar(-1).add(c.X.clone().multiplyScalar(0.2)), curl: 0.7, pole: V(-1, -0.5, -0.2) },
+             legs: { spread: 0.06, footZ: 0.48 }, head: VIOLIN_HEAD };
+  }
+  const VIOLIN_HEAD = [0.3, 0.3, 0.45];   // down, tilted to the left, turned to the left: the jaw comes onto the chinrest (the bake measures the jaw with this pose)
+  // Where each musician's mouth, jaw, neck and shoulders are, measured by the bake on the posed body (bron/assets/anatomy.json, in the musician's frame);
+  // a missing entry (a new musician before the next bake) falls back on an average seated player.
+  function anatomy(i, h) {
+    const a = ANAT[i], f = (k, d) => a && a[k] ? V(...a[k]) : d;
+    return { mouth: f("mouth", V(0, h + 0.7, 0.18)), chin: f("chin", V(0, h + 0.66, 0.17)), neck: f("neck", V(0, h + 0.62, 0.06)), lsh: f("lsh", V(0.17, h + 0.55, 0.07)), rsh: f("rsh", V(-0.17, h + 0.55, 0.07)) };
+  }
+  // A hand that holds something at point g: fingers along dir, the palm facing palm (toward the instrument); the wrist lies behind both.
+  const grip = (g, dir, palm, curl, pole, back = 0.07, off = 0.028) => { const d = dir.clone().normalize(), n = palm.clone().normalize();
+    return { t: g.clone().sub(d.clone().multiplyScalar(back)).sub(n.clone().multiplyScalar(off)), dir: d, palm: n, curl, ...(pole ? { pole } : {}) }; };
+  const tube = (ins, a, b, r, key) => ins.add(new THREE.CylinderGeometry(r, r, a.distanceTo(b), 10, 1, true), key, along(a, b), { side: THREE.DoubleSide });
+  // Winds and brass, built against the player's mouth (the v1 shapes assumed one mouth height for everyone and missed by up to 8 cm).
+  const WIND = {
+    "fluit": (ins, h, A) => {   // to the player's right, a little down and forward; the lip plate just under the lower lip
+      const E = A.mouth.clone().add(V(0, -0.014, 0.012)), F = V(-0.93, -0.12, 0.34).normalize(), at = s => E.clone().add(F.clone().multiplyScalar(s));
+      tube(ins, at(-0.06), at(0.6), 0.0095, "silver"); ins.add(new THREE.SphereGeometry(0.0105, 8, 6), "silver", M(...at(-0.06).toArray()));
+      ins.add(new THREE.BoxGeometry(0.03, 0.004, 0.022), "silver", basis(F, V(0, 1, 0), at(0).add(V(0, 0.008, 0))));
+      for (const sk of [0.17, 0.21, 0.25, 0.34, 0.38, 0.42, 0.47]) ins.add(new THREE.CylinderGeometry(0.006, 0.006, 0.004, 8), "silver", M(...at(sk).add(V(0, 0.009, 0)).toArray()));
+      return { L: grip(at(0.15).add(V(0, -0.012, -0.004)), V(0.15, 0.55, 0.8), V(0.05, 0.75, -0.6), 0.6, V(0.6, -1, -0.3)),
+               R: grip(at(0.4).add(V(0, 0.016, -0.006)), V(-0.05, -0.5, 0.85), V(0, -0.85, 0.5), 0.45, V(-1, -0.6, -0.2)),
+               legs: { spread: 0.06, footZ: 0.48 }, head: FLUTE_HEAD };
+    },
+    "hobo": (ins, h, A) => reed(ins, A, V(0, -0.8, 0.6), 0.6, 0.0105, 0.03, 0.05),
+    "klarinet": (ins, h, A) => reed(ins, A, V(0, -0.74, 0.67), 0.6, 0.012, 0.038, 0.08),
+    "fagot": (ins, h, A) => {   // diagonal across the body: the boot by the right hip, the top above the left shoulder; the crook to the mouth
+      const B0 = V(-0.13, h + 0.06, A.mouth.z + 0.1), T = V(0.33, A.mouth.y + 0.46, A.mouth.z - 0.07), ax = T.clone().sub(B0).normalize(), side = new THREE.Vector3().crossVectors(ax, V(0, 0, 1)).normalize();
+      tube(ins, B0, T, 0.021, "wood"); tube(ins, B0.clone().add(side.clone().multiplyScalar(0.04)), B0.clone().lerp(T, 0.72).add(side.clone().multiplyScalar(0.04)), 0.017, "wood");
+      ins.add(new THREE.CylinderGeometry(0.03, 0.03, 0.07, 10), "wood", along(B0.clone().add(ax.clone().multiplyScalar(-0.035)), B0.clone().add(ax.clone().multiplyScalar(0.035))));
+      ins.add(new THREE.CylinderGeometry(0.024, 0.021, 0.03, 10), "ivory", along(T, T.clone().add(ax.clone().multiplyScalar(0.03))));
+      const P = B0.clone().lerp(T, 0.5).add(side.clone().multiplyScalar(0.04)), Q = A.mouth.clone().add(V(-0.03, -0.045, 0.06));
+      seg(ins, P, Q, 0.0035, "silver", false); seg(ins, Q, A.mouth.clone().add(V(0, -0.004, 0.006)), 0.003, "silver", false);
+      return { L: grip(B0.clone().lerp(T, 0.58), V(-0.2, 0.25, 1), V(-0.75, 0, 0.6), 0.7, V(0.8, -0.8, -0.2)),
+               R: grip(B0.clone().lerp(T, 0.24), V(0.1, 0.3, 1), V(0.8, -0.1, 0.5), 0.7, V(-1, -0.8, -0.2)),
+               legs: { spread: 0.1, footZ: 0.48 }, head: [0.12, 0, 0] };
+    },
+    "trompet": (ins, h, A) => {   // straight out from the mouth, a little down; the valves on top
+      const P = A.mouth.clone().add(V(0, 0, 0.006)), D = V(0, -0.22, 1).normalize(), at = (s, y = 0) => P.clone().add(D.clone().multiplyScalar(s)).add(V(0, y, 0));
+      seg(ins, P, at(0.03), 0.004, "silver", false); tube(ins, at(0.03), at(0.32), 0.0065, "brass");
+      ins.add(bell(0.058, 0.17, 0.0065), "brass", along(at(0.32), at(0.49), M(0, -0.085)));
+      tube(ins, at(0.12, -0.055), at(0.33, -0.055), 0.0065, "brass"); tube(ins, at(0.12, -0.055), at(0.12, 0), 0.0065, "brass");
+      for (const sk of [0.19, 0.215, 0.24]) { ins.add(new THREE.CylinderGeometry(0.0085, 0.0085, 0.085, 10), "brass", M(...at(sk, -0.025).toArray()));
+        ins.add(new THREE.CylinderGeometry(0.008, 0.008, 0.012, 10), "ivory", M(...at(sk, 0.025).toArray())); }
+      return { L: grip(at(0.215, -0.04).add(V(0.012, 0, 0)), V(-0.4, 0.35, 0.85), V(-1, 0.1, 0), 0.75, V(0.9, -0.8, -0.2)),
+               R: grip(at(0.215, 0.032), V(0, -0.55, 0.85), V(0, -1, -0.1), 0.45, V(-1, -0.7, -0.3), 0.075, 0.02),
+               legs: { spread: 0.06, footZ: 0.48 }, head: [0.04, 0, 0] };
+    },
+    "trombone": (ins, h, A) => {   // the slide forward and down from the mouth, the bell over the left shoulder pointing forward
+      const P = A.mouth.clone().add(V(0, 0, 0.006)), D = V(0, -0.32, 1).normalize(), X = V(1, 0, 0), at = (s, x = 0, y = 0) => P.clone().add(D.clone().multiplyScalar(s)).add(V(x, y, 0));
+      seg(ins, P, at(0.04), 0.0045, "silver", false);
+      for (const x of [0, -0.045]) tube(ins, at(0.04, x), at(0.82, x), 0.0065, "brass");
+      ins.add(new THREE.TorusGeometry(0.0225, 0.0065, 6, 12, Math.PI), "brass", basis(D, V(0, 1, 0), at(0.82, -0.0225)).multiply(M(0, 0, 0, Math.PI / 2, 0, 0)));
+      const b0 = at(-0.08, 0.1, 0.07), b1 = at(0.36, 0.1, 0.07);
+      tube(ins, b0, b1, 0.0075, "brass"); tube(ins, at(-0.08, 0, 0.0), b0, 0.0075, "brass");
+      ins.add(bell(0.1, 0.24, 0.0075), "brass", along(b1, b1.clone().add(D.clone().multiplyScalar(0.24)), M(0, -0.12)));
+      return { L: grip(at(0.11, 0.05, -0.01), V(-0.3, 0.75, 0.5), V(-1, 0, 0.1), 0.8, V(0.8, -1, -0.2)),
+               R: grip(at(0.5, -0.02, -0.01), V(0.1, 0.3, 1), V(1, -0.2, 0), 0.6, V(-1, -0.8, 0)),
+               legs: { spread: 0.06, footZ: 0.48 }, head: [0.06, 0, 0] };
+    },
+    "hoorn": (ins, h, A) => {   // the coil in front of the chest, the bell on the right thigh with the right hand in it, the left hand on the valves
+      const C = V(-0.04, A.mouth.y - 0.27, A.mouth.z + 0.1), ax = V(0.8, 0.15, 0.55).normalize();
+      ins.add(new THREE.TorusGeometry(0.13, 0.014, 8, 32), "brass", basis(ax, V(0, 1, 0), C).multiply(M(0, 0, 0, Math.PI / 2, 0, 0)));
+      ins.add(new THREE.TorusGeometry(0.09, 0.009, 6, 28), "brass", basis(ax, V(0, 1, 0), C.clone().add(ax.clone().multiplyScalar(-0.02))).multiply(M(0, 0, 0, Math.PI / 2, 0, 0)));
+      const top = C.clone().add(V(0.035, 0.12, -0.03)), lp = A.mouth.clone().add(V(0.02, -0.06, 0.03));
+      seg(ins, top, lp, 0.005, "brass", false); seg(ins, lp, A.mouth.clone().add(V(0, -0.003, 0.006)), 0.004, "silver", false);
+      for (const k of [0, 1, 2]) ins.add(new THREE.CylinderGeometry(0.009, 0.009, 0.06, 10), "brass", M(...C.clone().add(V(0.07 + k * 0.012, 0.07 - k * 0.02, 0.0)).toArray(), 0, 0, 0.5));
+      const b0 = C.clone().add(V(-0.08, -0.1, -0.02)), b1 = V(-0.2, h + 0.17, A.mouth.z - 0.02);
+      ins.add(bell(0.14, b0.distanceTo(b1), 0.012), "brass", along(b0, b1, M(0, -b0.distanceTo(b1) / 2)));
+      return { L: grip(C.clone().add(V(0.08, 0.06, 0.01)), V(-0.5, -0.1, 0.85), V(-0.3, -0.9, 0.2), 0.55, V(0.8, -0.8, -0.2)),
+               R: grip(b1.clone().lerp(b0, 0.18).add(V(-0.01, 0, 0.02)), b0.clone().sub(b1).normalize(), V(0.6, 0.2, 0.7), 0.25, V(-1, -0.4, -0.2), 0.05, 0.03),
+               legs: { spread: 0.1, footZ: 0.48 }, head: [0.1, 0, 0] };
+    },
+    "tuba": (ins, h, A) => {   // on the lap, the bell up beside the player's right shoulder; the lead pipe to the mouth
+      const base = V(-0.27, h + 0.1, A.mouth.z + 0.07), Ht = A.mouth.y + 0.12 - base.y;   // beside the face, not in front of it
+      const prof = [[0.065, 0], [0.08, 0.25], [0.09, 0.5], [0.11, 0.72], [0.15, 0.92], [0.165, 1]].map(([r, f]) => [r, f * Ht]);
+      ins.add(lathe(prof, 24), "brass", M(...base.toArray(), -0.06, 0, 0.12), { side: THREE.DoubleSide });   // leaning a little away from the head
+      ins.add(new THREE.TorusGeometry(0.09, 0.03, 8, 16, Math.PI), "brass", M(base.x + 0.07, base.y + 0.02, base.z, Math.PI, 0, 0));
+      tube(ins, V(base.x + 0.16, base.y + 0.02, base.z), V(base.x + 0.14, base.y + 0.42, base.z + 0.02), 0.028, "brass");
+      const v0 = V(base.x + 0.12, A.mouth.y - 0.3, base.z + 0.06);
+      for (const k of [0, 1, 2, 3]) ins.add(new THREE.CylinderGeometry(0.012, 0.012, 0.11, 10), "brass", M(v0.x - k * 0.028, v0.y, v0.z + 0.03));
+      const lp0 = V(base.x + 0.1, A.mouth.y - 0.16, base.z - 0.02), lp1 = A.mouth.clone().add(V(-0.02, -0.04, 0.05));
+      seg(ins, lp0, lp1, 0.008, "brass", false); seg(ins, lp1, A.mouth.clone().add(V(0, -0.004, 0.008)), 0.006, "silver", false);
+      return { L: grip(V(base.x + 0.15, base.y + 0.3, base.z + 0.03), V(-0.3, 0.2, 1), V(-1, 0, 0.2), 0.6, V(0.9, -0.8, -0.2)),
+               R: grip(V(v0.x - 0.04, v0.y + 0.05, v0.z + 0.03), V(0.1, -0.6, 0.8), V(0, -1, 0.2), 0.5, V(-1, -0.6, -0.1)),
+               legs: { spread: 0.16, footZ: 0.48 }, head: [0.08, 0, 0] };
+    },
+  };
+  const FLUTE_HEAD = [0.05, -0.15, 0.15];
+  function reed(ins, A, dir, L, r, bellR, bellL) {   // oboe and clarinet: from the lips forward and down, the left hand above the right
+    const P = A.mouth.clone().add(V(0, 0, 0.004)), D = dir.clone().normalize(), at = s => P.clone().add(D.clone().multiplyScalar(s));
+    seg(ins, P, at(0.03), r * 0.45, "ivory", false); tube(ins, at(0.03), at(L), r, "ebony");
+    ins.add(bell(bellR, bellL, r), "ebony", along(at(L), at(L + bellL), M(0, -bellL / 2)));
+    for (const sk of [0.12, 0.2, 0.28, 0.36, 0.44]) ins.add(new THREE.TorusGeometry(r + 0.001, 0.0015, 4, 12), "silver", basis(D, V(0, 0, 1), at(sk)).multiply(M(0, 0, 0, Math.PI / 2, 0, 0)));
+    return { L: grip(at(0.17).add(V(0.004, 0, 0)), V(-0.3, -0.25, 1), V(-0.85, 0, 0.5), 0.6, V(0.8, -1, -0.1)),
+             R: grip(at(0.37).add(V(-0.004, 0, 0)), V(0.3, -0.25, 1), V(0.85, 0, 0.5), 0.6, V(-0.8, -1, -0.1)),
+             legs: { spread: 0.06, footZ: 0.48 }, head: [0.12, 0, 0] };
   }
   // The other instruments keep their v1 geometry (built mirrored); the hands follow its hand points.
   const POSE = {
@@ -610,7 +707,17 @@
         .replace("#include <fog_fragment>", `#include <fog_fragment>
           { float d = distance(vW, cameraPosition); gl_FragColor.rgb = mix(gl_FragColor.rgb, uHaze, smoothstep(${f(T.hazeFrom)}, ${f(T.hazeTo)}, d) * ${f(T.hazeMax)}); }`);
     };
-    const m = new THREE.Mesh(g, fm); m.name = "Bergland"; heuvels.add(m);
+    // In wedges, so the camera's frustum skips what lies behind or beside it (the same triangles; about two thirds of them were drawn out of view).
+    const W = T.wedges || 10, per = segs / W, P = g.attributes.position.array, N = g.attributes.normal.array;
+    for (let w = 0; w < W; w++) {
+      const a0 = Math.round(w * per), a1 = Math.round((w + 1) * per), cols = a1 - a0 + 1, wp = new Float32Array(rings * cols * 3), wn = new Float32Array(rings * cols * 3), wi = [];
+      for (let r = 0; r < rings; r++) for (let a = a0; a <= a1; a++) { const src = (r * (segs + 1) + a) * 3, dst = (r * cols + a - a0) * 3;
+        wp.set(P.subarray(src, src + 3), dst); wn.set(N.subarray(src, src + 3), dst); }
+      for (let r = 0; r < rings - 1; r++) for (let a = 0; a < cols - 1; a++) { const p0 = r * cols + a, p1 = p0 + cols; wi.push(p0, p0 + 1, p1, p0 + 1, p1 + 1, p1); }
+      const wg = new THREE.BufferGeometry(); wg.setAttribute("position", new THREE.BufferAttribute(wp, 3)); wg.setAttribute("normal", new THREE.BufferAttribute(wn, 3)); wg.setIndex(wi);
+      const m = new THREE.Mesh(wg, fm); m.name = "Bergland " + (w + 1); heuvels.add(m);
+    }
+    g.dispose();
   }
   const graan = group("Graan", omg);
   // Where the field turns green: soft patches and a few streaks, like the art direction foreground
@@ -722,9 +829,10 @@
     const h = opts.h ?? 1.1, p = new Part(name);
     if (!opts.noPole) { p.add(new THREE.CylinderGeometry(0.012, 0.014, h, 6), "frame", M(0, h / 2, 0));
       for (const a of [0, 2.1, 4.2]) p.add(new THREE.CylinderGeometry(0.008, 0.008, 0.26, 4), "frame", M(Math.cos(a) * 0.1, 0.04, Math.sin(a) * 0.1, 0, -a, 1.35)); }
-    p.add(new THREE.BoxGeometry(0.5, 0.36, 0.012), "frame", M(0, h, 0, -0.42));
-    p.add(new THREE.BoxGeometry(0.5, 0.03, 0.05), "frame", M(0, h - 0.17, 0.04, -0.42));
-    p.add(new THREE.PlaneGeometry(0.44, 0.3), "paper", M(0, h + 0.004, 0.01, -0.42), { map: SHEET });
+    const w = opts.w ?? 0.5;   // a shared stand in rehearsal is wider: one score for the whole team
+    p.add(new THREE.BoxGeometry(w, 0.36, 0.012), "frame", M(0, h, 0, -0.42));
+    p.add(new THREE.BoxGeometry(w, 0.03, 0.05), "frame", M(0, h - 0.17, 0.04, -0.42));
+    for (let k = 0, n = Math.round(w / 0.5); k < n; k++) p.add(new THREE.PlaneGeometry(0.44, 0.3), "paper", M((k - (n - 1) / 2) * (w / n), h + 0.004, 0.01, -0.42), { map: SHEET });
     const g = p.build(parent, true); g.userData.owners = owners; g.userData.count = 1;
     if (!opts.noPole) g.add(contactBlob(0.55, 0.45));
     g.position.set(x, y, z); g.rotation.y = ry; return g;
@@ -749,7 +857,7 @@
         const mir = new THREE.Group(); mir.name = "Gespiegeld"; mir.scale.x = -1; m.add(mir);
         chairPart("Stoel", h, "plush", part === "piano").build(mir);
         const ins = new Part("Instrument"); let pose;
-        if (RINSTR[part]) { pose = RINSTR[part](ins, h); ins.build(m); }
+        if (RINSTR[part] || WIND[part]) { pose = (RINSTR[part] || WIND[part])(ins, h, anatomy(MUS.length, h)); ins.build(m); }
         else { const hands = INSTR[part](ins, h); pose = poseFor(part, hands); ins.build(mir); }
         const body = new Part("Lichaam"); seatedFigure(body, h, v, poseForV1(pose)); const stand = body.build(mir); stand.userData.standIn = true;
         m.position.set(x, y, z); m.rotation.y = Math.atan2(cx0 - x, cz0 - z);
@@ -845,24 +953,26 @@
   { const ry = NEXT.board.rotY, [bx, bz] = NEXT.board.at, sx = Math.cos(ry), sz = -Math.sin(ry), fx = Math.sin(ry), fz = Math.cos(ry);
     const x = bx + sx * 1.15 + fx * 0.35, z = bz + sz * 1.15 + fz * 0.35; dir2.position.set(x, terrainH(x, z), z); dir2.rotation.y = ry - 0.4; }
   const rep = group("Repetitie", CHG);
-  { const [rx, rz] = NEXT.rehearsal, gy = terrainH(rx, rz), n = NEXT.players.length;
-    NEXT.players.forEach((part, i) => {
-      const a = Math.PI * (0.15 + 1.7 * i / (n - 1)) + 0.9, R = NEXT.ring * (part === "piano" ? 1.35 : 1);   // a loose circle, open toward the stage
-      const x = rx + Math.cos(a) * R, z = rz + Math.sin(a) * R;
-      const m = group("Repetitie · " + part, rep); m.userData.part = part; m.userData.count = 1;
+  NEXT.teams.forEach((team, ti) => {   // each team on an arc round one shared stand, the open side toward the camera
+    const [tx, tz] = team.at, gy = terrainH(tx, tz), n = team.players.length, back = Math.atan2(-NEXT.open[1], -NEXT.open[0]);
+    const tg = group("Team " + (ti + 1), rep); tg.userData.count = n;
+    team.players.forEach((part, i) => {
+      const a = back + (i / (n - 1) - 0.5) * 2.5, R = NEXT.ring * (part === "cello" || part === "fagot" ? 1.08 : 1);
+      const x = tx + Math.cos(a) * R, z = tz + Math.sin(a) * R;
+      const m = group("Repetitie · " + part, tg); m.userData.part = part; m.userData.count = 1;
       const h = SEAT[part] || 0.46, v = variant(vi++);
       const mir = new THREE.Group(); mir.name = "Gespiegeld"; mir.scale.x = -1; m.add(mir);
       chairPart("Stoel", h, "plush", part === "piano").build(mir);
       const ins = new Part("Instrument"); let pose;
-      if (RINSTR[part]) { pose = RINSTR[part](ins, h); ins.build(m); }
+      if (RINSTR[part] || WIND[part]) { pose = (RINSTR[part] || WIND[part])(ins, h, anatomy(MUS.length, h)); ins.build(m); }
       else { const hands = INSTR[part](ins, h); pose = poseFor(part, hands); ins.build(mir); }
       const body = new Part("Lichaam"); seatedFigure(body, h, v, poseForV1(pose)); const stand = body.build(mir); stand.userData.standIn = true;
-      m.position.set(x, gy, z); m.rotation.y = Math.atan2(rx - x, rz - z);
+      m.position.set(x, gy, z); m.rotation.y = Math.atan2(tx - x, tz - z);
       MUS.push({ m, part, h, v, vi: vi - 1, pose, standIn: stand, outfit: "repetitie" });
-      if (part !== "piano") { const ry = m.rotation.y, d = 0.95;   // each player has their own stand in rehearsal
-        standObj(m, "Lessenaar", [m.name], 0, d, 0, Math.PI, {}); }
-      else standObj(m, "Lessenaar", [m.name], 0, 0.42, 0.95, Math.PI, { h: 0.2, noPole: true });
-    }); }
+    });
+    const sx = tx - Math.cos(back) * 0.12, sz = tz - Math.sin(back) * 0.12;   // the shared stand, a little toward the open side, its page to the players
+    standObj(tg, "Lessenaar · gedeeld", tg.children.map(c => c.name), sx, sz, gy, Math.atan2(Math.cos(back), Math.sin(back)), { w: 0.85 });
+  });
 
   // Publiek: four rows on the field, seen from behind. Chairs are merged per row; the people are placed by the loader (Rocketbox, like the orchestra).
   const pub = group("Publiek", RUN); const AUD = [];

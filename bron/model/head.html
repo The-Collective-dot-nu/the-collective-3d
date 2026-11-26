@@ -123,9 +123,11 @@ details[open] > summary .tw { transform: rotate(90deg); }
   const AUDIENCE = { rows: 4, perRow: 12, firstZ: 38, rowGap: 1.15, seatGap: 0.9 };
   const BOARD = { x: 19, y: -4, rotY: 0.3, title: "TONIGHT'S SYMPHONY", lines: ["The Show", "Must Go On"], foot: "· THE ORCHESTRA ·" };   // programme board beside the stage, on the ground to the right, just outside the opening shot (Kai); faces the front
   // CHANGE · tomorrow: a flat terrace on the left rim of the bowl, out of the opening shot: next season's board and a small rehearsal
-  const NEXT = { x: -37, z: 1, r: 6.5, rehearsal: [-36.4, 0.4], ring: 2.0,
+  const NEXT = { x: -37, z: 1, r: 6.5, ring: 0.95, open: [0.8, 0.6],   // open: the side each team leaves free (toward the camera), as x/z
+    teams: [{ at: [-37.3, -1.3], players: ["viool", "fluit", "hoorn", "cello"] },   // CHANGE: two small mixed teams, each round one shared stand (one part, end to end)
+            { at: [-35.0, 1.5], players: ["altviool", "klarinet", "trompet", "fagot"] }],
     board: { at: [-39.8, -1.4], rotY: 0.96, title: "NEXT SEASON'S SYMPHONY", lines: ["The Next", "Episode"], foot: "· IN REHEARSAL ·" },
-    players: ["viool", "fluit", "hoorn", "cello", "piano"] };
+  };
   const CAMS = {
     1: { pos: [0, 2.0, 36], target: [0, 4.4, -10], fov: 34 },  // opening: low and frontal, the stage in the lower third, pale hills above the red rim
     2: { pos: [0, 1.6, 44], target: [0, 1.8, -3], fov: 45 },  // zoom out: behind the audience, heads in view
