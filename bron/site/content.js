@@ -72,6 +72,29 @@
       org: "Change: build what comes next, with multidisciplinary teams around a value stream and the means to deliver it end to end." },
   };
 
+  // PLAN_TEASER: at the Plan stop, the portfolio teaser on the right (Kai): the Plan part of our instruments score, from ambition to what we play first.
+  // Each instrument: id (its Backstage text is "i-<id>"), n name, st the stages it plays at, w what it does (public). How it plays in the framework is behind the Backstage pass.
+  const PLAN_TEASER = {
+    kicker: "Plan \u00b7 the instruments we play", title: "Every method is an instrument. Alone it plays a solo.",
+    lead: "In the framework each takes its part: from ambition to what we play first.",
+    hint: "Point at an instrument to see where it plays.", open: "The instruments", close: "Close",
+    stages: [{ k: "ambition", name: "Ambition" }, { k: "goals", name: "Goals" }, { k: "initiatives", name: "Initiatives" }, { k: "choose", name: "Choose" }],
+    instruments: [
+      { id: "northstar", n: "North Star", st: ["ambition"], w: "One direction for five to ten years, in a sentence." },
+      { id: "narrative", n: "Strategy narrative", st: ["ambition"], w: "The story of why you exist and where you go, before any numbers." },
+      { id: "ogsm", n: "OGSM", st: ["goals", "initiatives"], w: "Objective, goals, strategies and measures on one page per objective." },
+      { id: "okr", n: "OKR", st: ["goals"], w: "Objectives with a few measurable key results, per quarter." },
+      { id: "hoshin", n: "Hoshin Kanri", st: ["goals", "initiatives"], w: "Breakthrough goals cascaded down, with teams answering back." },
+      { id: "outcome", n: "Outcomes, not output", st: ["goals"], w: "Goals that describe a change in result, not a list of things delivered." },
+      { id: "frame", n: "Out of the frame", st: ["goals", "choose"], w: "Naming what you will not do this year." },
+      { id: "golf", n: "Golf balls, pebbles, sand", st: ["initiatives", "choose"], w: "The big things in the jar first, then the small ones fill the gaps." },
+      { id: "intake", n: "Intake traffic light", st: ["initiatives"], w: "Green, orange or red for every new idea, before it enters the portfolio." },
+      { id: "link", n: "Initiative-to-goal map", st: ["initiatives"], w: "A line from every initiative to the goal it serves." },
+      { id: "sort", n: "Run, Change, explore, stop", st: ["choose"], w: "The piles every piece of work lands in." },
+      { id: "wsjf", n: "WSJF and cost of delay", st: ["choose"], w: "First what loses most value per week of waiting, divided by its size." },
+      { id: "tshirt", n: "T-shirt sizing", st: ["choose"], w: "S, M, L, XL instead of precise estimates." },
+      { id: "nnl", n: "Now, Next, Later", st: ["choose"], w: "A rolling roadmap in three horizons instead of dates." },
+    ] };
   // BACKSTAGE: the "learn more" behind a password, in every problem and framework-part panel. The teaser is public; the full texts are
   // encrypted in site/backstage.json (bron/backstage/encrypt.py; the readable texts never go in the repo)
   const BACKSTAGE = { label: "Backstage pass", teaser: "Lorem ipsum dolor sit amet: behind the curtain, how we would tackle this with you, step by step. Sed posuere consectetur est at lobortis.",

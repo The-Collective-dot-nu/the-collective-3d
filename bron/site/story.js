@@ -295,7 +295,7 @@
     tlSkip.setAttribute("aria-disabled", lastSeg); tlPrev.setAttribute("aria-disabled", n === 0 && at === 0);   // Next everywhere but the last part, Previous everywhere but the opening
     tlPlay.setAttribute("aria-disabled", !S.seq);   // pause only means something in a part that plays by itself
     if (n !== curSeg) { curSeg = n; wake(3200); }   // every new part shows the bar for a moment
-    panelSteps(S); setCompass(S); music.sync(STOPS.indexOf(S));
+    panelSteps(S); setTeaser(S); music.sync(STOPS.indexOf(S));
   }
   /* ---------- the story panels: a small framework on top (where we are), and in a part that plays by itself one more text per step, with a bar per step ---------- */
   const PANEL_PART = { plan: "p", blueprint: "b", means: "m", orchestration: "o", dims: "rc" }, PART_ORDER = ["plan", "blueprint", "means", "orchestration", "dims"];
@@ -306,7 +306,6 @@
       c.innerHTML = `<svg viewBox="0 0 640 560">${fig.slice(0, end)}<path class="tip" d="M-9 -8L9 0L-9 8z" transform="translate(274.7 38.6) rotate(-11)"/>${fig.slice(end)}</svg>`;
       c.querySelectorAll(".k").forEach(g => { const pos = PART_ORDER.findIndex(q => PANEL_PART[q].includes(g.dataset.k)); g.setAttribute("class", "k " + (pos === here ? "is-now" : pos < here ? "is-seen" : "is-later")); });
       panel.prepend(c); }); }
-  function setCompass() {}
   for (const k in panels) { const P = panels[k];
     const more = document.createElement("div"); more.className = "panel__more"; more.dataset.panelMore = "";
     const steps = document.createElement("div"); steps.className = "panel__steps"; steps.dataset.panelSteps = "";
@@ -414,6 +413,7 @@
   const WHEEL_REST = 0.45; let wheelQuiet = 0, wheelAcc = 0;
   addEventListener("wheel", e => {
     if (e.target.closest && e.target.closest("[data-drawer]")) return;   // an open side panel scrolls itself
+    if (e.target.closest && e.target.closest("[data-teaser]") && teaser.scrollHeight > teaser.clientHeight + 4) return;   // so does the Plan teaser when it is taller than the screen
     e.preventDefault();
     const now = clock.getElapsedTime(), quiet = now - wheelQuiet; wheelQuiet = now;
     if ((anim && anim.k < 0.85) || quiet < WHEEL_REST && wheelAcc === 0) return;
@@ -422,7 +422,7 @@
   }, { passive: false });
   addEventListener("keydown", e => {
     if (e.key === "Escape" && (openProblem >= 0 || openPart)) { closeDrawers(true); return; }
-    if (e.target.closest && e.target.closest("[data-drawer]")) return;   // arrows and space scroll the open side panel
+    if (e.target.closest && e.target.closest("[data-drawer], input")) return;   // arrows and space scroll the open side panel, and type in the Backstage password
     if (e.target.closest && e.target.closest("button") && (e.key === " " || e.key === "Enter")) return;
     if (["ArrowDown", "ArrowRight", "PageDown", " "].includes(e.key)) { e.preventDefault(); step(1); }
     if (["ArrowUp", "ArrowLeft", "PageUp"].includes(e.key)) { e.preventDefault(); step(-1); }
@@ -431,8 +431,8 @@
   });
   let touchY = null;
   stage.addEventListener("touchstart", e => { touchY = e.touches[0].clientY; }, { passive: true });
-  stage.addEventListener("touchmove", e => { if (!e.target.closest(".problems, .coll__page, [data-drawer]")) e.preventDefault(); }, { passive: false });
-  stage.addEventListener("touchend", e => { if (touchY === null) return; if (e.target.closest("[data-drawer]")) { touchY = null; return; } for (const sel of [".coll__page", ".problems"]) { const el = e.target.closest(sel); if (el && el.scrollHeight > el.clientHeight + 4) { touchY = null; return; } } const dy = touchY - e.changedTouches[0].clientY; touchY = null; if (Math.abs(dy) > 40) step(Math.sign(dy)); });   // a list that scrolls (About, problems on phones) is scrolled, not swiped away
+  stage.addEventListener("touchmove", e => { if (!e.target.closest(".problems, .coll__page, [data-drawer], [data-teaser]")) e.preventDefault(); }, { passive: false });
+  stage.addEventListener("touchend", e => { if (touchY === null) return; if (e.target.closest("[data-drawer], [data-teaser]")) { touchY = null; return; } for (const sel of [".coll__page", ".problems"]) { const el = e.target.closest(sel); if (el && el.scrollHeight > el.clientHeight + 4) { touchY = null; return; } } const dy = touchY - e.changedTouches[0].clientY; touchY = null; if (Math.abs(dy) > 40) step(Math.sign(dy)); });   // a list that scrolls (About, problems on phones) is scrolled, not swiped away
   const segBtns = SEGS.map((g, n) => { const b = document.createElement("button");
     b.type = "button"; b.className = "timeline__seg"; b.dataset.timelineSeg = n; b.tabIndex = -1;
     b.setAttribute("aria-label", `${STORY.goTo} ${STOPS[g.first].name}`);
@@ -490,6 +490,38 @@
   document.addEventListener("submit", async e => { const form = e.target.closest && e.target.closest(".backstage__form"); if (!form) return; e.preventDefault();
     const el = form.closest(".backstage"), msg = el.querySelector(".backstage__msg"), pw = form.querySelector("input").value;
     try { bs.key = await bsKey(pw); await bsReveal(el); } catch (err) { msg.textContent = err.message === "nocrypto" ? BACKSTAGE.nocrypto : BACKSTAGE.wrong; form.querySelector("input").select(); } });   // the key stays for this visit only
+  /* ---------- Plan teaser (Kai): the Plan part of the instruments score; an instrument and its stages light each other; how it plays in the framework is behind the Backstage pass ("i-<id>") ---------- */
+  var teaser = $("[data-teaser]"), teaserSel = null;
+  { const T = PLAN_TEASER, X = { ambition: 34, goals: 128, initiatives: 232, choose: 350 }, svg = [];
+    const ln = (d, c) => svg.push(`<path class="lnk${c ? " " + c : ""}" d="${d}"/>`);
+    const G = [86, 132, 178], I = [[64, [0], 0], [86, [0], 1], [109, [0, 1], 0, 1], [132, [1], 0], [155, [1], 1], [178, [2], 2], [200, [2], 1], [222, [], 3]], B = [[70, "Now"], [112, "Next"], [154, "Later"], [204, "Not now"]];
+    G.forEach(y => ln(`M52 132 C80 132 84 ${y} 104 ${y}`));
+    I.forEach(([y, gs, b, syn]) => { gs.forEach(g => ln(`M152 ${G[g]} C190 ${G[g]} 192 ${y} 226 ${y}`, syn ? "syn" : "")); ln(`M238 ${y} C280 ${y} 284 ${B[b][0]} 312 ${B[b][0]}`, b === 0 ? "go" : ""); });
+    const stage = (k, w, inner) => `<g class="ts" data-st="${k}"><rect class="halo" x="${X[k] - w / 2}" y="0" width="${w}" height="236" rx="6"/><text class="stn" x="${X[k]}" y="18" text-anchor="middle">${esc(T.stages.find(x => x.k === k).name.toUpperCase())}</text>${inner}</g>`;
+    const amb = `<circle class="nd" cx="34" cy="132" r="18"/><path d="M34 119l4 13-4-2.5-4 2.5z" fill="var(--color-highlight)"/>`;
+    const goals = G.map(y => `<rect class="nd" x="104" y="${y - 12}" width="48" height="24" rx="4"/><text class="lbl" x="128" y="${y + 3.5}" text-anchor="middle">Goal</text>`).join("");
+    const inits = I.map(([y, gs, b, syn]) => gs.length ? `<circle class="nd" cx="232" cy="${y}" r="${[7, 4.5, 7, 3.5, 5.5, 4.5, 7][I.findIndex(r => r[0] === y)] || 5}"${syn ? ' style="stroke:var(--color-highlight)"' : ""}/>` : `<circle class="orph" cx="232" cy="${y}" r="5"/>`).join("");
+    const buckets = B.map(([y, n], i) => `<rect class="nd" x="312" y="${y - 13}" width="76" height="26" rx="4"${i === 3 ? ' style="stroke:rgb(241 64 11 / .55)"' : ""}/><text class="lbl" x="324" y="${y + 3.5}">${n}</text>`).join("");
+    teaser.innerHTML = `<button class="close close--corner teaser__close" type="button" data-teaser-close aria-label="${esc(T.close)}"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M1.5 1.5L10.5 10.5M10.5 1.5L1.5 10.5"/></svg></button>
+      <p class="teaser__kicker">${esc(T.kicker)}</p><h2 class="teaser__title">${esc(T.title)}</h2><p class="teaser__lead">${esc(T.lead)}</p>
+      <svg class="teaser__score" viewBox="0 0 400 236" aria-hidden="true">${svg.join("")}${stage("ambition", 60, amb)}${stage("goals", 72, goals)}${stage("initiatives", 64, inits)}${stage("choose", 96, buckets)}</svg>
+      <div class="teaser__chips">${T.instruments.map(x => `<button class="teaser__chip" type="button" aria-pressed="false" data-i="${x.id}">${esc(x.n)}</button>`).join("")}</div>
+      <div class="teaser__detail" aria-live="polite"><p class="teaser__hint">${esc(T.hint)}</p></div>`; }
+  function setTeaser(S) { if (!teaser) return; const on = S.panel === "plan"; teaser.classList.toggle("is-on", on); if (!on) teaser.classList.remove("is-open"); }
+  { const score = teaser.querySelector(".teaser__score"), chips = teaser.querySelector(".teaser__chips"), detail = teaser.querySelector(".teaser__detail"), byId = id => PLAN_TEASER.instruments.find(x => x.id === id);
+    const light = (st, ids) => { score.classList.toggle("is-dim", !!st); score.querySelectorAll(".ts").forEach(g => g.classList.toggle("is-lit", !!st && st.includes(g.dataset.st)));
+      chips.classList.toggle("is-dim", !!ids); chips.querySelectorAll(".teaser__chip").forEach(c => c.classList.toggle("is-lit", !!ids && ids.includes(c.dataset.i))); };
+    const rest = () => teaserSel ? light(byId(teaserSel).st, null) : light(null, null);
+    const pick = c => { const x = byId(c.dataset.i); teaserSel = x.id; chips.querySelectorAll(".teaser__chip").forEach(b => b.setAttribute("aria-pressed", b === c));
+      detail.innerHTML = `<h3>${esc(x.n)}</h3><p>${esc(x.w)}</p>` + backstageHTML("i-" + x.id); rest();
+      if (bs.key) { const el = detail.querySelector(".backstage"); el.querySelector(".backstage__body").hidden = false; bsReveal(el).catch(() => {}); } };   // once in, every instrument opens at once
+    chips.addEventListener("pointerover", e => { const c = e.target.closest(".teaser__chip"); if (c) { const x = byId(c.dataset.i); light(x.st, [x.id]); } });
+    chips.addEventListener("focusin", e => { const c = e.target.closest(".teaser__chip"); if (c) { const x = byId(c.dataset.i); light(x.st, [x.id]); } });
+    chips.addEventListener("pointerleave", rest); chips.addEventListener("focusout", rest);
+    chips.addEventListener("click", e => { const c = e.target.closest(".teaser__chip"); if (c) pick(c); });
+    score.querySelectorAll(".ts").forEach(g => { g.addEventListener("pointerenter", () => light([g.dataset.st], PLAN_TEASER.instruments.filter(x => x.st.includes(g.dataset.st)).map(x => x.id))); g.addEventListener("pointerleave", rest); });
+    $("[data-teaser-open]").addEventListener("click", () => teaser.classList.add("is-open"));
+    teaser.querySelector("[data-teaser-close]").addEventListener("click", () => teaser.classList.remove("is-open")); }
   function showDrawer(kind, html) {
     const d = drawers[kind], other = drawers[kind === "problem" ? "part" : "problem"];
     if (!drawerFrom || !drawerFrom.isConnected) drawerFrom = document.activeElement;
