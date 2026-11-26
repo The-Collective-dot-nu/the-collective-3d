@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=Figtree:wght@400;500&family=Barlow+Condensed:wght@700&display=swap">
-<link rel="stylesheet" href="site/styles.css?v=466db379">
+<link rel="stylesheet" href="site/styles.css?v=026a7b04">
 </head>
 <body class="is-loading">
 <main class="stage" id="stage" aria-label="The Collective: when an organisation plays as one">
@@ -1639,7 +1639,7 @@
   const CAM2 = NARROW ? frame(orchBox, V(0, 0.62, 1), 40, 0.84) : K([0, 3.2, 25], [0, 2.4, -4], 38);   // the closer view of frame 2, reused by Blueprint, Means and the dimensions; phones look down a little more, so the orchestra fills the width instead of a thin strip
   const oneByOne = (t, s, t0 = 0.6, step = 0.8) => { const i = Math.floor((s - t0) / step); return t.env || t.conductor || i < 0 || i > 3 || t.section === SECT[i] || (i === 0 && (t.section === "Harp" || t.section === "Piano")); };   // the whole orchestra first, then section by section (harp and piano with the strings), then all again: never the conductor alone
   const condStandBox = box(lessen.getObjectByName("Dirigent (partituur)"));
-  const FW_STEP = 1.25;   // the framework builds up one part every FW_STEP s (frame 3): each part first big with its name in the middle, then it flies to its place (Kai, option C)
+  const FW_STEP = 2;   // the framework builds up one part every FW_STEP s (frame 3): each part first big with its name in the middle, then it flies to its place (Kai, option C)
   const LINE_HOLD = 2.4, TW_DUR = 0.3;   // "It isn't": one line per step and one thing happening with it, each held LINE_HOLD seconds (Kai: calmer, one thing per sentence)
   const SECTION_STEP = 0.8;   // "Different roles": a section every SECTION_STEP seconds (oneByOne)
   const STOPS = [
@@ -1865,16 +1865,14 @@
   }
   /* ---------- the story panels: a small framework on top (where we are), and in a part that plays by itself one more text per step, with a bar per step ---------- */
   const PANEL_PART = { plan: "p", blueprint: "b", means: "m", orchestration: "o", dims: "rc" }, PART_ORDER = ["plan", "blueprint", "means", "orchestration", "dims"];
-  // the compass (Kai, option A): the framework small, top right, while a part is told; the current part bright, the parts seen half lit
-  const compass = document.createElement("div"); compass.className = "compass"; compass.setAttribute("aria-hidden", "true");
+  // the compass in the cards (Kai): the framework small on top of each story panel, without words; the panel's own part bright, the parts told before half lit
   { const fig = fwEl.innerHTML.replace(/<defs>[\s\S]*?<\/defs>/, "").replace(/<text[\s\S]*?<\/text>/g, "").replace(/ marker-end="[^"]*"/, "").replace(/ pathLength="1"/, ""), end = fig.lastIndexOf("</g>");   // the same figure without its words; the arrow's head drawn fixed
-    compass.innerHTML = `<svg viewBox="0 0 640 560">${fig.slice(0, end)}<path class="tip" d="M-9 -8L9 0L-9 8z" transform="translate(274.7 38.6) rotate(-11)"/>${fig.slice(end)}</svg><p class="compass__label"><b></b> <span></span></p>`; }
-  $(".panels").after(compass);
-  const PART_NAME = { plan: "Plan", blueprint: "Blueprint", means: "Means", orchestration: "Orchestration", dims: "Run and Change" };
-  function setCompass(S) {
-    const here = S.panel ? PART_ORDER.indexOf(S.panel) : -1; compass.classList.toggle("is-on", here >= 0); if (here < 0) return;
-    compass.querySelectorAll(".k").forEach(g => { const pos = PART_ORDER.findIndex(p => PANEL_PART[p].includes(g.dataset.k)); g.setAttribute("class", "k " + (pos === here ? "is-now" : pos < here ? "is-seen" : "is-later")); });
-    compass.querySelector("b").textContent = PART_NAME[S.panel].toUpperCase(); compass.querySelector("span").textContent = `${here + 1} / ${PART_ORDER.length}`; }
+    PART_ORDER.forEach((part, here) => { const panel = $(`[data-panel="${part}"]`); if (!panel) return;
+      const c = document.createElement("div"); c.className = "compass"; c.setAttribute("aria-hidden", "true");
+      c.innerHTML = `<svg viewBox="0 0 640 560">${fig.slice(0, end)}<path class="tip" d="M-9 -8L9 0L-9 8z" transform="translate(274.7 38.6) rotate(-11)"/>${fig.slice(end)}</svg>`;
+      c.querySelectorAll(".k").forEach(g => { const pos = PART_ORDER.findIndex(q => PANEL_PART[q].includes(g.dataset.k)); g.setAttribute("class", "k " + (pos === here ? "is-now" : pos < here ? "is-seen" : "is-later")); });
+      panel.prepend(c); }); }
+  function setCompass() {}
   for (const k in panels) { const P = panels[k];
     const more = document.createElement("div"); more.className = "panel__more"; more.dataset.panelMore = "";
     const steps = document.createElement("div"); steps.className = "panel__steps"; steps.dataset.panelSteps = "";
@@ -1904,8 +1902,8 @@
     const lab = g.querySelector(".lab"), t = lab.getBBox(), c = f.getBBox(), k = t.height / (c.height * 0.55);   // land on the part's own label
     const dx = t.x + t.width / 2 - 320, dy = t.y + t.height / 2 - 270;
     requestAnimationFrame(() => f.classList.add("is-in"));
-    flyTimers.push(setTimeout(() => { f.style.transform = `translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px) scale(${k.toFixed(3)})`; f.classList.add("is-out"); }, 520),
-      setTimeout(done, 760), setTimeout(() => f.remove(), 1300));
+    flyTimers.push(setTimeout(() => { f.style.transform = `translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px) scale(${k.toFixed(3)})`; f.classList.add("is-out"); }, 1250),
+      setTimeout(done, 1490), setTimeout(() => f.remove(), 2050));   // the name stays big about 1.2 s (Kai: it went too fast)
   }
   /* ---------- music: asked once the site is ready; The Show Must Go On under the story, a scratch into The Next Episode when the view goes to Change ---------- */
   // Files: bron/assets/audio/*.mp3 (royalty-free versions, Kai), copied by build.py to site/audio/ and fetched only after "Yes".
@@ -1914,35 +1912,44 @@
     const CHANGE_AT = STOPS.findIndex(s => s.id === "d2");   // the camera goes to the rehearsal: Change
     const btn = $("[data-sound]"), ask = $("[data-sound-ask]");
     let ctx = null, on = false, cur = null, want = "show", scratchBuf = null;
+    const SHOW_END = 251.1, NEXT_IN = 0.34;   // seconds: where The Show Must Go On falls silent, where The Next Episode starts to sound
+    let nextSrc = null;   // The Next Episode loops from its decoded buffer: gapless, without the silence at its start
     const want0 = i => i >= CHANGE_AT ? "next" : "show";
     function setup() {
       ctx = new (window.AudioContext || window.webkitAudioContext)();
       for (const k in TRACKS) { const T = TRACKS[k], a = new Audio(); a.src = T.url; a.loop = true; a.preload = "auto"; a.crossOrigin = "anonymous";
         T.el = a; T.gain = ctx.createGain(); T.gain.gain.value = 0; ctx.createMediaElementSource(a).connect(T.gain).connect(ctx.destination); }
+      TRACKS.show.el.addEventListener("timeupdate", () => { const e = TRACKS.show.el; if (e.currentTime > SHOW_END) e.currentTime = 0; });   // the file ends in 3 s of silence: loop before it
       fetch(TRACKS.next.url).then(r => r.arrayBuffer()).then(b => ctx.decodeAudioData(b)).then(buf => { scratchBuf = buf; }).catch(() => {});   // the scratch is cut from the start of the new song
     }
     const fade = (k, to, sec) => { const g = TRACKS[k].gain.gain, t = ctx.currentTime; g.cancelScheduledValues(t); g.setValueAtTime(g.value, t); g.linearRampToValueAtTime(to, t + sec); };
     function scratch() {   // forward, back, forward, back: short pieces of the record at changing speed, through a narrow band like a needle on vinyl
       if (!scratchBuf) return 0;
       const len = Math.floor(0.22 * scratchBuf.sampleRate), rev = ctx.createBuffer(scratchBuf.numberOfChannels, len, scratchBuf.sampleRate), fwd = ctx.createBuffer(scratchBuf.numberOfChannels, len, scratchBuf.sampleRate);
-      for (let c = 0; c < scratchBuf.numberOfChannels; c++) { const src = scratchBuf.getChannelData(c).subarray(0, len); fwd.copyToChannel(src, c); const r = new Float32Array(len); for (let i = 0; i < len; i++) r[i] = src[len - 1 - i]; rev.copyToChannel(r, c); }
+      for (let c = 0; c < scratchBuf.numberOfChannels; c++) { const o = Math.floor(NEXT_IN * scratchBuf.sampleRate), src = scratchBuf.getChannelData(c).subarray(o, o + len); fwd.copyToChannel(src, c); const r = new Float32Array(len); for (let i = 0; i < len; i++) r[i] = src[len - 1 - i]; rev.copyToChannel(r, c); }
       const bp = ctx.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 1400; bp.Q.value = 0.8; const g = ctx.createGain(); g.gain.value = 0.9; bp.connect(g).connect(ctx.destination);
       let t = ctx.currentTime + 0.02; const PARTS = [[fwd, 1.8, 0.11], [rev, 2.4, 0.08], [fwd, 2.0, 0.1], [rev, 2.6, 0.07], [fwd, 1.4, 0.12]];
       for (const [b, rate, d] of PARTS) { const s = ctx.createBufferSource(); s.buffer = b; s.playbackRate.setValueAtTime(rate * 0.6, t); s.playbackRate.linearRampToValueAtTime(rate, t + d * 0.5); s.playbackRate.linearRampToValueAtTime(rate * 0.4, t + d);
         s.connect(bp); s.start(t); s.stop(t + d); t += d + 0.015; }
       return t - ctx.currentTime;
     }
+    function startTrack(k) {
+      if (k === "next" && scratchBuf) { if (nextSrc) return; const s = ctx.createBufferSource(); s.buffer = scratchBuf; s.loop = true; s.loopStart = NEXT_IN; s.loopEnd = scratchBuf.duration; s.connect(TRACKS.next.gain); s.start(0, NEXT_IN); nextSrc = s; return; }
+      if (k === "next" && TRACKS.next.el.currentTime < NEXT_IN) TRACKS.next.el.currentTime = NEXT_IN;
+      TRACKS[k].el.play().catch(() => {});
+    }
+    function stopTrack(k) { if (k === "next" && nextSrc) { nextSrc.stop(); nextSrc = null; } TRACKS[k].el.pause(); }
     function play(k) {
       if (!on || k === cur) return;
       const from = cur; cur = k; let delay = 0;
-      if (from) { fade(from, 0, from === "show" && k === "next" ? 0.15 : 1.0); const el = TRACKS[from].el; setTimeout(() => { if (cur !== from) el.pause(); }, 1200); }
-      if (from === "show" && k === "next") { delay = scratch(); TRACKS.next.el.currentTime = 0; }   // the DJ moment
-      setTimeout(() => { if (cur !== k || !on) return; TRACKS[k].el.play().catch(() => {}); fade(k, TRACKS[k].vol, from ? (delay ? 0.05 : 1.0) : 2.0); }, delay * 1000);
+      if (from) { fade(from, 0, from === "show" && k === "next" ? 0.15 : 1.0); setTimeout(() => { if (cur !== from) stopTrack(from); }, 1200); }
+      if (from === "show" && k === "next") { delay = scratch(); if (!scratchBuf) TRACKS.next.el.currentTime = 0; else if (nextSrc) { nextSrc.stop(); nextSrc = null; } }   // the DJ moment: the new song from its start
+      setTimeout(() => { if (cur !== k || !on) return; startTrack(k); fade(k, TRACKS[k].vol, from ? (delay ? 0.05 : 1.0) : 2.0); }, delay * 1000);
     }
     function setOn(v) {
       on = v; btn.setAttribute("aria-pressed", v); btn.setAttribute("aria-label", v ? "Sound off" : "Sound on"); btn.classList.toggle("is-on", v); ask.classList.remove("is-on");
       if (v) { if (!ctx) setup(); ctx.resume(); cur = null; play(want); }
-      else if (ctx) { for (const k in TRACKS) { fade(k, 0, 0.4); const el = TRACKS[k].el; setTimeout(() => { if (!on) el.pause(); }, 450); } cur = null; }
+      else if (ctx) { for (const k in TRACKS) { fade(k, 0, 0.4); setTimeout(() => { if (!on) stopTrack(k); }, 450); } cur = null; }
     }
     btn.addEventListener("click", () => setOn(!on));
     $("[data-sound-yes]").addEventListener("click", () => setOn(true));

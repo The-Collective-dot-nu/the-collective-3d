@@ -350,19 +350,15 @@ p, ul, h1, h2 { margin: 0; }
 .prob.is-lit { border-color: var(--color-line); background-color: var(--panel-fill); }
 .prob.is-lit .prob__line { color: var(--color-highlight); }
 
-/* ---- the compass (Kai, option A): the framework small top right while a part is told; fine lines, the current part cream, the parts seen half lit ---- */
-.compass { position: absolute; z-index: 3; right: var(--gutter); top: calc(var(--nav-top) + 64px); width: 150px; text-align: center; pointer-events: none;
-  opacity: 0; transform: translateY(-6px); transition: opacity .6s ease, transform .8s var(--ease-out); }
-.compass.is-on { opacity: 1; transform: none; transition: opacity .9s ease .3s, transform 1s var(--ease-out) .3s; }
-.compass svg { display: block; width: 100%; height: auto; overflow: visible; filter: drop-shadow(0 1px 12px rgb(var(--rgb-shadow) / .5)); }
+/* ---- the compass in the story panels (Kai): the framework small on top of the card, no words; fine lines, the current part cream, the parts seen half lit ---- */
+.compass { width: 104px; margin: 0 0 14px; pointer-events: none; }   /* on top of each story panel, before the kicker */
+.compass svg { display: block; width: 100%; height: auto; overflow: visible; }
 .compass .ring, .compass .part, .compass .arc { fill: none; stroke: rgb(var(--rgb-paper) / .3); stroke-width: 1; vector-effect: non-scaling-stroke; transition: stroke .6s ease, fill .6s ease; }
 .compass .tip { fill: rgb(var(--rgb-paper) / .3); transition: fill .6s ease; }
 .compass .is-seen .part, .compass .is-seen .arc { stroke: rgb(var(--rgb-paper) / .6); } .compass .is-seen .part { fill: rgb(var(--rgb-paper) / .06); } .compass .is-seen .tip { fill: rgb(var(--rgb-paper) / .6); }
 .compass .is-now .part { fill: rgb(252 232 216 / .22); stroke: var(--color-highlight); stroke-width: 1.6; }
 .compass .is-now .arc { stroke: var(--color-highlight); stroke-width: 2; } .compass .is-now .tip { fill: var(--color-highlight); }
-.compass__label { margin-top: 8px; font: 500 .62rem/1 var(--font-sans); letter-spacing: .16em; color: var(--color-highlight); text-shadow: var(--shadow-text); }
-.compass__label span { color: rgb(var(--rgb-paper) / .5); font-weight: 400; }
-@media (max-width: 720px) { .compass { width: 84px; top: calc(var(--nav-top) + 48px); } .compass__label { font-size: .55rem; letter-spacing: .12em; } }
+@media (max-width: 720px) { .compass { width: 64px; margin-bottom: 10px; } }
 
 /* framework build-up (Kai, option C): the new part's name big in the middle, then it shrinks into its place */
 .fw .fly { transform-origin: 320px 270px; opacity: 0; transform: scale(.94); transition: opacity .35s ease, transform .35s var(--ease-out); pointer-events: none; }
