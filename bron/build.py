@@ -31,7 +31,7 @@ def heads():
     return out
 def data(assets, textures, hd): return "\n  const HEADS = " + json.dumps(hd) + ";\n  const ASSETS = " + json.dumps(assets) + ";\n  const TEXTURES = " + json.dumps(textures) + ";\n"
 # the conductors are still built in the browser (one live, one at the rehearsal): only their avatar and its textures stay in the page (Business_Male_01 = m005)
-CONDUCTOR_FBX, CONDUCTOR_TEX = ["Business_Male_01"], ["m005_body", "m005_body_red", "m005_head", "m005_opacity"]
+CONDUCTOR_FBX, CONDUCTOR_TEX = ["Business_Male_01"], ["m005_body", "m005_body_coat", "m005_head", "m005_opacity"]
 REPO = os.path.dirname(ROOT); out_dir = os.path.join(REPO, "site"); os.makedirs(out_dir, exist_ok=True)
 REDIRECT = """<!doctype html>
 <html lang="en">

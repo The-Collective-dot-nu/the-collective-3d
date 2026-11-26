@@ -43,7 +43,7 @@
     try {
       if (window.__noPeople) { note.hidden = true; window.__people = { skipped: true }; return; }
       await nextFrame(); const t0 = performance.now();
-      const T = { conductor: rbTemplate("Business_Male_01", "red") }, O = PEOPLE.orchestra, A = PEOPLE.audience;
+      const T = { conductor: rbTemplate("Business_Male_01", "coat") }, O = PEOPLE.orchestra, A = PEOPLE.audience;
       const place = (c, g) => { c.m.add(g); c.m.userData.outfit = g.userData.outfit; return g; };
       // the orchestra first: the loader waits only for this file (download to 70 %, decoded 80 %, placed 100 %)
       const ob = await download(O, got => { window.__peopleProgress = 0.7 * Math.min(1, got / O.bytes); note.textContent = "Muzikanten laden… " + (got / 1e6).toFixed(1) + " van " + (O.bytes / 1e6).toFixed(1) + " MB"; });

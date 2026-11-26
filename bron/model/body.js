@@ -79,7 +79,7 @@
     hair:    { color: 0x2a1a12, roughness: 0.9 },
     skin:    { color: 0xc99470, roughness: 0.75 },
     frame:   { color: 0x040303, roughness: 0.55, metalness: 0.15 },   // black lacquered steel (stands, chair frames)
-    plush:   { color: 0x16120f, roughness: 0.7 },
+    plush:   { color: 0x050404, roughness: 0.85 },   // orchestra chairs: black and matte like the audience's, so the sun does not turn them brown
     seatAud: { color: 0x040404, roughness: 0.85 },   // audience chairs: black seat and back, matte so the sun does not turn them brown
     frameAud: { color: 0x050404, roughness: 0.5, metalness: 0.15 },   // black chairs: nothing red competes with the conductor
     wood:    { color: 0x2c0f05, roughness: 0.4 },   // dark antique wood
