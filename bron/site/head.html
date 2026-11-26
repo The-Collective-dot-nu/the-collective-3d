@@ -129,9 +129,11 @@
   <button class="brand" type="button" data-brand aria-label="The Collective, back to the start">The Collective</button>
   <button class="meet" id="meet" type="button">About us</button>
   <nav class="timeline" data-timeline aria-label="Story">
-    <span class="timeline__bar" data-timeline-bar></span>
     <span class="timeline__label" data-timeline-label>The concert</span>
-    <button class="timeline__skip" type="button" data-timeline-skip>Next</button>
+    <button class="timeline__btn" type="button" data-timeline-prev aria-label="Previous"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3.5L5.5 8L10 12.5"/></svg></button>
+    <button class="timeline__btn timeline__btn--play" type="button" data-timeline-play aria-label="Pause"><svg viewBox="0 0 16 16" aria-hidden="true"><path class="i-pause" d="M5.5 4v8M10.5 4v8"/><path class="i-play" d="M5.5 3.8L12 8L5.5 12.2z"/></svg></button>
+    <span class="timeline__bar" data-timeline-bar></span>
+    <button class="timeline__btn timeline__skip" type="button" data-timeline-skip aria-label="Next"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3.5L10.5 8L6 12.5"/></svg></button>
   </nav>
   <div class="loading" id="loading" aria-hidden="true">Musicians arriving…</div>
   <div class="loader" id="loader" role="status" aria-live="polite">

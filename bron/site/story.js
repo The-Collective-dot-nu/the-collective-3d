@@ -74,16 +74,17 @@
   const oneByOne = (t, s, t0 = 0.6, step = 0.8) => { const i = Math.floor((s - t0) / step); return t.env || t.conductor || i < 0 || i > 3 || t.section === SECT[i] || (i === 0 && (t.section === "Harp" || t.section === "Piano")); };   // the whole orchestra first, then section by section (harp and piano with the strings), then all again: never the conductor alone
   const condStandBox = box(lessen.getObjectByName("Dirigent (partituur)"));
   const FW_STEP = 0.6;   // the framework builds up one part every 0.6 s (frame 3)
-  const LINE_GAP = 0.9, TW_DUR = 0.3, TENSION_GAP = 1.9;   // "It isn't": a line every LINE_GAP, the tension TENSION_GAP after the last line, so the coloured lines can be seen; the holds of t1-t3 follow from these (t2 and t3 move in TW_DUR, t3's line comes halfway)
-  // from "Different roles" to "One performance" the sections light up one by one (oneByOne, a section every SECTION_STEP from arriving), then all again
-  const SECTION_STEP = 3 * LINE_GAP / 4;
+  const LINE_HOLD = 2.4, TW_DUR = 0.3;   // "It isn't": one line per step and one thing happening with it, each held LINE_HOLD seconds (Kai: calmer, one thing per sentence)
+  const SECTION_STEP = 0.8;   // "Different roles": a section every SECTION_STEP seconds (oneByOne)
   const STOPS = [
     { id: "open", name: "The concert", ch: 0, cam: NARROW ? K([0, 5.5, 90], [0, 7.0, -20], 6.8) : K([0, 3.2, 90], [0, 5.95, -20], 11.2), beats: ["opening"] },   // a long lens from far back: flat stage, high rim, big hills; phones zoom in further, the orchestra a little wider than the screen and low in it
     // Frame 2: It isn't. Roles, skills, views, one performance
-    { id: "t1", name: "The complexity", ch: 0, seq: "twist", bar: 0, hold: 2 * LINE_GAP, dur: 0.5, cam: CAM2, beats: ["twist"], lines: 1, linesTo: 2, fadeLate: 1, focus: (t, s) => oneByOne(t, s, 0, SECTION_STEP) },   // straight from the opening to "Different roles": the whole orchestra stays until the camera has arrived
-    { id: "t2", ch: 0, seq: "twist", bar: 1, hold: LINE_GAP - 1.5 * TW_DUR, dur: TW_DUR, cam: CAM2, beats: ["twist"], lines: 3, glow: 1, focus: (t, s) => oneByOne(t, s + 2 * LINE_GAP + TW_DUR, 0, SECTION_STEP) },   // the sections go on where t1 left them
-    { id: "t3", ch: 0, seq: "twist", bar: 2, hold: TENSION_GAP - TW_DUR / 2, dur: TW_DUR, cam: CAM2, beats: ["twist"], lines: 4, chaos: 1 },
-    { id: "t5", ch: 0, seq: "twist", bar: 3, hold: 5.4, dur: 1.6, cam: frame(box(sec("Koper")).union(condBox), V(0.05, 0.42, 1), 30, innerWidth <= 720 ? 0.6 : 0.62, 0.3), beats: ["off"], off: 1 },
+    { id: "t1", name: "The complexity", ch: 0, seq: "twist", bar: 0, hold: LINE_HOLD, dur: 0.5, cam: CAM2, beats: ["twist"], lines: 0, fadeLate: 1 },   // one thing per line: "It isn't." alone, the whole orchestra, once the camera has arrived
+    { id: "t2", ch: 0, seq: "twist", bar: 1, hold: 4 * SECTION_STEP + 0.6, dur: TW_DUR, cam: CAM2, beats: ["twist"], lines: 1, focus: (t, s) => oneByOne(t, s, 0.3, SECTION_STEP) },   // Different roles: the sections one by one
+    { id: "t3", ch: 0, seq: "twist", bar: 2, hold: LINE_HOLD, dur: TW_DUR, cam: CAM2, beats: ["twist"], lines: 2, glow: 1 },   // Different capabilities: the instruments glow
+    { id: "t4", ch: 0, seq: "twist", bar: 3, hold: LINE_HOLD + 0.4, dur: TW_DUR, cam: CAM2, beats: ["twist"], lines: 3, glow: 1, chaos: 1 },   // Different perspectives: the loose coloured lines
+    { id: "t6", ch: 0, seq: "twist", bar: 4, hold: LINE_HOLD, dur: TW_DUR, cam: CAM2, beats: ["twist"], lines: 4 },   // One performance: all together again, the lines gone
+    { id: "t5", ch: 0, seq: "twist", bar: 5, hold: 5.4, dur: 1.6, cam: frame(box(sec("Koper")).union(condBox), V(0.05, 0.42, 1), 30, innerWidth <= 720 ? 0.6 : 0.62, 0.3), beats: ["off"], off: 1 },
     // Frame 3: the framework, built up over the concert
     { id: "f0", name: "The framework", ch: 1, seq: "fw", bar: 0, hold: FW_STEP, cam: K([0, 27, 25], [0, 0, -1.5], 40), beats: ["fw"], fw: "big", show: "", shade: 0.3 },   // one part every FW_STEP seconds
     { id: "f1", ch: 1, seq: "fw", bar: 1, hold: FW_STEP, dur: 0.15, cam: K([0, 27, 25], [0, 0, -1.5], 40), beats: ["fw"], fw: "big", show: "p", shade: 0.3 },
@@ -95,19 +96,19 @@
     // Frame 4: Plan
     { id: "plan", name: "Plan", ch: 2, cam: NARROW ? abovePanel(frame(boardBox, V(0.62, 0.2, 1), 40, 1.25, 0.2), 155, 0.6) : frame(boardBox, V(0.62, 0.2, 1), 40, 1.9, 0.2), panel: "plan" },   // phones: close on the board, above the panel
     // Frame 5: Blueprint
-    { id: "b1", name: "Blueprint", ch: 3, seq: "bp", bar: 0, hold: 2.2, cam: CAM2, panel: "blueprint", focus: t => t.stand || t.env, caption: "The score on every stand" },
-    { id: "b2", ch: 3, seq: "bp", bar: 1, fadeLate: 1, hold: 2.8, dur: 1.8, cam: frame(condStandBox, V(0, 0.9, 0.55), 34, 1.15), panel: "blueprint", focus: t => t.env || t.condStand, caption: "The conductor’s score" },
-    { id: "b3", ch: 3, seq: "bp", bar: 2, hold: 2.6, dur: 1.8, cam: frame(orchBox, V(0, 0.75, 1), 42, 0.74), panel: "blueprint", line: 1, fallen: 0.16, focus: t => t.env || t.stand || LINE1.has(t.player), caption: "One melody, many hands" },
-    { id: "b4", ch: 3, seq: "bp", bar: 3, hold: 3.0, cam: frame(orchBox, V(0.06, 0.72, 1), 42, 0.72), panel: "blueprint", line: 2, fallen: 0.16, focus: t => t.env || t.stand || LINE1.has(t.player) || LINE2.has(t.player), caption: "Two melodies, eight specialists, four sections" },
+    { id: "b1", more: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore.", name: "Blueprint", ch: 3, seq: "bp", bar: 0, hold: 2.2, cam: CAM2, panel: "blueprint", focus: t => t.stand || t.env, caption: "The score on every stand" },
+    { id: "b2", more: "Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo.", ch: 3, seq: "bp", bar: 1, fadeLate: 1, hold: 2.8, dur: 1.8, cam: frame(condStandBox, V(0, 0.9, 0.55), 34, 1.15), panel: "blueprint", focus: t => t.env || t.condStand, caption: "The conductor’s score" },
+    { id: "b3", more: "Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla.", ch: 3, seq: "bp", bar: 2, hold: 2.6, dur: 1.8, cam: frame(orchBox, V(0, 0.75, 1), 42, 0.74), panel: "blueprint", line: 1, fallen: 0.16, focus: t => t.env || t.stand || LINE1.has(t.player), caption: "One melody, many hands" },
+    { id: "b4", more: "Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit.", ch: 3, seq: "bp", bar: 3, hold: 3.0, cam: frame(orchBox, V(0.06, 0.72, 1), 42, 0.72), panel: "blueprint", line: 2, fallen: 0.16, focus: t => t.env || t.stand || LINE1.has(t.player) || LINE2.has(t.player), caption: "Two melodies, eight specialists, four sections" },
     // Frame 6: Means
-    { id: "m1", name: "Means", ch: 4, seq: "means", bar: 0, hold: 3.6, cam: CAM2, panel: "means", focus: (t, s) => oneByOne(t, s, 0.4, 0.8), caption: "Four sections, many specialists" },
-    { id: "m2", ch: 4, seq: "means", bar: 1, hold: 2.6, dur: 0.5, cam: CAM2, panel: "means", glow: 1, caption: "Their instruments" },
-    { id: "m3", ch: 4, seq: "means", bar: 2, hold: 3.0, dur: 2.2, cam: frame(kassaBox, V(-0.55, 0.32, 1), 38, 1.7), panel: "means", booth: 1, caption: "And the budget that keeps them playing" },
+    { id: "m1", more: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore.", name: "Means", ch: 4, seq: "means", bar: 0, hold: 3.6, cam: CAM2, panel: "means", focus: (t, s) => oneByOne(t, s, 0.4, 0.8), caption: "Four sections, many specialists" },
+    { id: "m2", more: "Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo.", ch: 4, seq: "means", bar: 1, hold: 2.6, dur: 0.5, cam: CAM2, panel: "means", glow: 1, caption: "Their instruments" },
+    { id: "m3", more: "Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla.", ch: 4, seq: "means", bar: 2, hold: 3.0, dur: 2.2, cam: frame(kassaBox, V(-0.55, 0.32, 1), 38, 1.7), panel: "means", booth: 1, caption: "And the budget that keeps them playing" },
     // Frame 7: Orchestration
-    { id: "orch", name: "Orchestration", ch: 5, seq: "dims", bar: 0, hold: 3.6, cam: frame(condBox, V(0.1, 0.22, 1), 34, 1.7, 0.1), panel: "orchestration", focus: t => t.env || t.conductor || (t.stand && t.condStand) },
+    { id: "orch", name: "Orchestration", ch: 5, cam: frame(condBox, V(0.1, 0.22, 1), 34, 1.7, 0.1), panel: "orchestration", focus: t => t.env || t.conductor || (t.stand && t.condStand) },
     // Frame 8: the two dimensions
-    { id: "d1", name: "Run and Change", ch: 6, seq: "dims", bar: 1, hold: 3.4, dur: 2.2, cam: CAM2, panel: "dims" },
-    { id: "d2", ch: 6, seq: "dims", bar: 2, hold: 3.0, dur: 2.6, cam: NARROW ? abovePanel(frame(nextBox, nextFront.clone().add(V(0.6, 0.55, 0.5)), 40, 1.15), 310) : frame(nextBox, nextFront.clone().add(V(0.6, 0.55, 0.5)), 40, 1.35), panel: "dims", late: 1 },
+    { id: "d1", name: "Run and Change", ch: 6, seq: "dims", bar: 0, hold: 3.4, dur: 2.2, cam: CAM2, panel: "dims" },
+    { id: "d2", ch: 6, seq: "dims", bar: 1, hold: 3.0, dur: 2.6, cam: NARROW ? abovePanel(frame(nextBox, nextFront.clone().add(V(0.6, 0.55, 0.5)), 40, 1.15), 310) : frame(nextBox, nextFront.clone().add(V(0.6, 0.55, 0.5)), 40, 1.35), panel: "dims", late: 1 },
     // Frame 9 and 10: your organisation
     { id: "question", name: "Your organisation", ch: 7, seq: "you", bar: 0, hold: 3.2, cam: NARROW ? K([0, 2.2, 46], [0, 2.2, -3], 28) : K([0, 1.7, 45.5], [0, 3.0, -3], 46), beats: ["question"], shade: 0.25, fore: 1 },
     { id: "problems", ch: 7, seq: "you", bar: 1, dur: 2.4, cam: NARROW ? K([0, 13, 33], [0, -16, -3]) : K([0, 24, 46], [0, 12.5, -3]), problems: true, shade: 0.72, fw: "side", show: "pbmorc" },   // the list on dark ground: the stage below it (desktop) or up behind the framework (phones)
@@ -173,12 +174,11 @@
   let scrollRest = 0; const setProblemsScroll = () => { document.documentElement.style.setProperty("--problems-scroll", problems.scrollTop + "px");   // phones: the framework above the list scrolls along
     fwEl.classList.add("is-scrolling"); clearTimeout(scrollRest); scrollRest = setTimeout(() => fwEl.classList.remove("is-scrolling"), 150); };
   problems.addEventListener("scroll", setProblemsScroll, { passive: true });
-  const tlNav = $("[data-timeline]"), tlBar = $("[data-timeline-bar]"), tlLabel = $("[data-timeline-label]"), tlSkip = $("[data-timeline-skip]");
+  const tlNav = $("[data-timeline]"), tlBar = $("[data-timeline-bar]"), tlLabel = $("[data-timeline-label]"), tlSkip = $("[data-timeline-skip]"), tlPrev = $("[data-timeline-prev]"), tlPlay = $("[data-timeline-play]");
   const collEl = $("#coll"), meetBtn = $("#meet");
   const fwGlass = $("[data-fw-glass]");
-  // "It isn't": "Different roles" and "Different capabilities" appear in t1 (the second after LINE_GAP), "Different perspectives" with the glow (t2),
-  // "One performance" together with the coloured lines (t3), each LINE_GAP after the last
-  let lineT = 0; const showLines = S => { let n = S.lines ?? 4; if (S.linesTo) n = anim ? 0 : Math.min(S.linesTo, n + Math.floor(lineT / LINE_GAP)); if (S.chaos && anim && anim.k <= 0.5) n--; lineEls.forEach(li => li.classList.toggle("is-shown", +li.dataset.line <= n)); };   // t1: only "It isn't." during the flight, the first line once the camera has arrived
+  // "It isn't": each step shows one more line (S.lines), and one thing happens with it (t1-t6)
+  const showLines = S => { const n = S.lines ?? 4; lineEls.forEach(li => li.classList.toggle("is-shown", +li.dataset.line <= n)); };
   const lineEls = [...document.querySelectorAll("[data-line]")], dimsLate = $("#dimsLate"), fwEl = $("#fw");
   { // the framework figure, B2: floating rounded bands inside a circle, two columns, the Orchestration ring with its arrow
     const CX = 320, CY = 262, R = 192;   // all colours and the text sizes come from styles.css (.fw .part, .fw .ring, .fw .arc, .fw .sub): the parts look like the panels
@@ -229,7 +229,7 @@
 
   /* ---------- moving between stops ---------- */
   const clock = new THREE.Clock();
-  let at = 0, from = 0, fromSince = 0, anim = null, arrived = 0, started = 0, paused = false, preview = -1, barStart = 0, curBar = -1;
+  let at = 0, from = 0, fromSince = 0, anim = null, arrived = 0, started = 0, paused = false, held = false, preview = -1, barStart = 0, curBar = -1, curSeg = -1;   // held: the visitor pressed pause
   const camNow = () => ({ pos: camera.position.clone(), target: camTarget.clone(), fov: camera.fov });
   const camTarget = STOPS[0].cam.target.clone();
   const sameCam = (a, b) => a.pos.equals(b.pos) && a.target.equals(b.target) && a.fov === b.fov;
@@ -251,6 +251,7 @@
     if (!window.__audience && clock.getElapsedTime() - (waitGo ? waitGo.since : clock.getElapsedTime()) < AUDIENCE_WAIT && showsAudience(STOPS[i])) {
       waitGo = { i, instant, since: waitGo ? waitGo.since : clock.getElapsedTime() }; return; }   // the latest wish wins; see frameLoop
     waitGo = null;
+    if (held && segOf(i) !== segOf(at)) setHeld(false);   // a new part plays again
     const now = clock.getElapsedTime(), S = STOPS[i], P = STOPS[at];
     if (anim && !instant && sameCam(S.cam, STOPS[anim.to].cam)) {   // same view as where the camera is heading: let that move run on
       anim.to = i; at = i; started = now;
@@ -287,15 +288,48 @@
     segBtns.forEach((b, k) => { b.setAttribute("aria-current", k === n ? "step" : "false"); b.tabIndex = k === n ? 0 : -1; segFills[k].style.transform = `scaleX(${k < n ? 1 : 0})`; });
     if (tlBar.contains(document.activeElement) && document.activeElement !== segBtns[n]) segBtns[n].focus({ preventScroll: true });   // focus follows only if it is already in the bar
     segFills[n].parentNode.appendChild(tlDot);
-    if (preview < 0) showSeg(nameAt(at));
-    tlSkip.classList.toggle("is-on", !lastSeg);   // Next: everywhere but the last part
+    if (preview < 0) showSeg(nameAt(at), n);
+    tlSkip.setAttribute("aria-disabled", lastSeg); tlPrev.setAttribute("aria-disabled", n === 0 && at === 0);   // Next everywhere but the last part, Previous everywhere but the opening
+    tlPlay.setAttribute("aria-disabled", !S.seq);   // pause only means something in a part that plays by itself
+    if (n !== curSeg) { curSeg = n; wake(3200); }   // every new part shows the bar for a moment
+    panelSteps(S);
+  }
+  /* ---------- the story panels: a small framework on top (where we are), and in a part that plays by itself one more text per step, with a bar per step ---------- */
+  const PANEL_PART = { plan: "p", blueprint: "b", means: "m", orchestration: "o", dims: "rc" }, PART_ORDER = ["plan", "blueprint", "means", "orchestration", "dims"];
+  for (const k in panels) { const P = panels[k];
+    if (PANEL_PART[k]) { const m = document.createElementNS("http://www.w3.org/2000/svg", "svg"); m.setAttribute("class", "panel__fw"); m.setAttribute("viewBox", "0 0 640 560"); m.setAttribute("aria-hidden", "true");
+      m.innerHTML = fwEl.innerHTML.replace(/<defs>[\s\S]*?<\/defs>/, "").replace(/<text[\s\S]*?<\/text>/g, "").replace(/ marker-end="[^"]*"/, "").replace(/ pathLength="1"/, "");   // the same figure, without its words: shapes only
+      const here = PART_ORDER.indexOf(k);
+      m.querySelectorAll(".k").forEach(g => { const pos = PART_ORDER.findIndex(p => PANEL_PART[p].includes(g.dataset.k)); g.classList.add(pos === here ? "is-now" : pos < here ? "is-seen" : "is-later"); });
+      P.prepend(m); }
+    const more = document.createElement("div"); more.className = "panel__more"; more.dataset.panelMore = "";
+    const steps = document.createElement("div"); steps.className = "panel__steps"; steps.dataset.panelSteps = "";
+    const org = P.querySelector(".panel__org"); org ? org.before(more) : P.append(more); P.append(steps); }
+  let stepFills = [];
+  function panelSteps(S) {
+    const q = S.seq && S.panel && SEQS[S.seq]; if (!S.panel) return;
+    const P = panels[S.panel], more = P.querySelector("[data-panel-more]"), steps = P.querySelector("[data-panel-steps]");
+    if (!q) { more.innerHTML = steps.innerHTML = ""; steps.dataset.seq = ""; stepFills = []; return; }
+    if (steps.dataset.seq !== S.seq) { steps.dataset.seq = S.seq; more.innerHTML = "";
+      steps.innerHTML = q.bars.map((_, b) => `<button class="panel__step" type="button" data-step="${b}" aria-label="Step ${b + 1}"><span><i></i></span></button>`).join("");
+      steps.querySelectorAll("[data-step]").forEach(b => b.addEventListener("click", () => { const j = STOPS.findIndex((T, j) => j >= q.first && j <= q.last && T.bar === +b.dataset.step); if (j >= 0) goTo(j); })); }   // back (or on) to that step
+    stepFills = [...steps.querySelectorAll("i")];
+    for (let j = q.first; j <= q.last; j++) { const T = STOPS[j]; if (!T.more) continue; let el = more.querySelector(`[data-j="${j}"]`);
+      if (j <= at && !el) { el = document.createElement("div"); el.className = "panel__more-text"; el.dataset.j = j; el.innerHTML = `<p>${T.more}</p>`; more.appendChild(el);
+        requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add("is-in"))); }   // the newest text comes last, after the camera and the caption
+      else if (j > at && el) el.remove(); }
   }
   function setPaused(v) {   // only the screenshot scripts pause a sequence (__story.pause)
     paused = v;
     if (!v) arrived = clock.getElapsedTime() - (STOPS[at].hold || 0) * 0.5;   // resume: a short wait, then on
   }
-  tlSkip.textContent = STORY.next;
   tlSkip.addEventListener("click", () => { const n = segOf(at); if (n < SEGS.length - 1) goTo(SEGS[n + 1].first); });   // Next: the first step of the next part (a running sequence is passed as a whole)
+  tlPrev.addEventListener("click", () => { const n = segOf(at); goTo(STOPS[at].seq && at > SEGS[n].first ? SEGS[n].first : SEGS[Math.max(0, n - 1)].first); });   // Previous: back to the start of this part (as a video player), or to the part before
+  const setHeld = v => { held = paused = v; tlPlay.classList.toggle("is-paused", v); tlPlay.setAttribute("aria-label", v ? "Play" : "Pause"); };
+  tlPlay.addEventListener("click", () => { if (STOPS[at].seq) setHeld(!held); });
+  // the bar shows when the mouse moves, at the start and at each new part, then fades; it stays while the pointer or the keyboard is on it
+  let wakeT = 0; function wake(ms = 2600) { tlNav.classList.add("is-awake"); clearTimeout(wakeT); wakeT = setTimeout(() => { if (!held) tlNav.classList.remove("is-awake"); }, ms); }   // paused: it stays, as in a video player
+  addEventListener("pointermove", e => { if (e.pointerType === "mouse") wake(); }, { passive: true });
   function step(d) {   // one gesture = one scene; a running sequence counts as one scene
     if (document.body.classList.contains("is-loading")) return;
     meetFrom = null;
@@ -333,11 +367,11 @@
     b.innerHTML = '<span class="timeline__line"><i class="timeline__fill"></i></span>'; tlBar.appendChild(b); return b; });
   const segFills = segBtns.map(b => b.querySelector(".timeline__fill"));
   const tlDot = document.createElement("span"); tlDot.className = "timeline__dot";
-  function showSeg(name) { tlLabel.textContent = name; }
+  function showSeg(name, n) { tlLabel.textContent = name; const b = segBtns[n]; if (b) tlNav.style.setProperty("--timeline-label-x", (b.offsetLeft + b.offsetWidth / 2) + "px"); }   // the name stands above its segment
   segBtns.forEach((b, n) => {   // hover or focus previews a segment's name; leaving shows the active one again
-    const peek = () => { preview = n; showSeg(STOPS[SEGS[n].first].name); }, back = () => { preview = -1; showSeg(nameAt(at)); };
+    const peek = () => { preview = n; showSeg(STOPS[SEGS[n].first].name, n); }, back = () => { preview = -1; showSeg(nameAt(at), segOf(at)); };
     b.addEventListener("pointerenter", peek); b.addEventListener("focus", peek); b.addEventListener("pointerleave", back); b.addEventListener("blur", back);
-    b.addEventListener("click", () => { if (document.body.classList.contains("is-loading")) return; paused = false; meetFrom = null; goTo(SEGS[n].first); });
+    b.addEventListener("click", () => { if (document.body.classList.contains("is-loading")) return; if (!held) paused = false; meetFrom = null; goTo(SEGS[n].first); });
   });
   tlBar.addEventListener("keydown", e => {   // roving tabindex: one tab stop, the arrows move between segments
     const d = { ArrowRight: 1, ArrowLeft: -1 }[e.key], n = +e.target.dataset.timelineSeg; if (!d || Number.isNaN(n)) return;
@@ -354,10 +388,9 @@
   function problemHTML(n) { const P = PROBLEMS[n];   // the title is the recognition; the figure beside it lights the parts and opens them
     return `<h2 class="drawer__title">${esc(P.line)}</h2>`
       + section(LABELS.wrong, `<p class="drawer__text">${esc(P.wrong)}</p>`) + section(LABELS.solve, `<p class="drawer__text">${esc(P.solve)}</p>`); }
-  function partHTML(k) { const T = PARTS[k], related = PROBLEMS.map((P, n) => [P, n]).filter(([P]) => P.parts.includes(k));
+  function partHTML(k) { const T = PARTS[k];   // the problems it helps solve light up in the list on the left, not here (Kai: they stood there twice)
     return `<p class="drawer__kicker">${esc(T.name)} · ${esc(T.sub)}</p><h2 class="drawer__title">${esc(T.title)}</h2><p class="drawer__question">${esc(T.question)}</p><p class="drawer__text">${esc(T.text)}</p>`
-      + section(LABELS.org, `<p class="drawer__text">${esc(T.org)}</p>`)
-      + (related.length ? section(LABELS.problems, `<div class="drawer__problems">${related.map(([P, n]) => `<button class="drawer__problem" type="button" data-open-problem="${n}">${esc(P.short)}</button>`).join("")}</div>`) : ""); }
+      + section(LABELS.org, `<p class="drawer__text">${esc(T.org)}</p>`); }
   function showDrawer(kind, html) {
     const d = drawers[kind], other = drawers[kind === "problem" ? "part" : "problem"];
     if (!drawerFrom || !drawerFrom.isConnected) drawerFrom = document.activeElement;
@@ -379,7 +412,8 @@
   }
   const openProblemFn = n => { openProblem = n; showDrawer("problem", problemHTML(n)); }, openPartFn = k => { openPart = k; showDrawer("part", partHTML(k)); };
   function markDrawers() {   // the open problem's card; in the figure, the parts that problem (or the open part) is about
-    cards.forEach((c, n) => { c.classList.toggle("is-active", n === openProblem); c.setAttribute("aria-expanded", n === openProblem); });
+    cards.forEach((c, n) => { c.classList.toggle("is-active", n === openProblem); c.setAttribute("aria-expanded", n === openProblem); c.classList.toggle("is-lit", !!openPart && PROBLEMS[n].parts.includes(openPart)); });
+    problems.classList.toggle("has-focus", !!openPart);   // an open part: its problems light up in the list
     const lit = openPart ? [openPart] : openProblem >= 0 ? PROBLEMS[openProblem].parts : [];
     fwEl.classList.toggle("has-focus", lit.length > 0); fwEl.querySelectorAll(".k").forEach(g => g.classList.toggle("is-lit", lit.includes(g.dataset.k)));
   }
@@ -567,12 +601,12 @@
     }
     camera.lookAt(camTarget); camera.updateProjectionMatrix();
     const S = STOPS[at], F = STOPS[from], since = anim ? 0 : now - arrived, fSince = anim ? fromSince : since, mix = anim ? kk : 1;
-    if (S.seq === "twist") { lineT = anim ? 0 : now - arrived; showLines(S); }   // the lines count from arriving
     if (waitGo && (window.__audience || now - waitGo.since >= AUDIENCE_WAIT)) goTo(waitGo.i, waitGo.instant);   // the audience is in (or will not come): go now
     // auto-advance inside a sequence
     const Q = S.seq && SEQS[S.seq];
     if (Q && !paused && at < Q.last && (anim ? S.fw && sameCam(STOPS[at + 1].cam, STOPS[anim.to].cam) && now - started >= S.hold : now - arrived >= S.hold)) goTo(at + 1);   // the framework's steps don't wait for the camera; every other sequence goes on once it has arrived ("It isn't" dimmed the orchestra mid-flight)
     if (paused && Q) barStart += dt;
+    if (held && !anim) arrived += dt;   // pause: the step's own clock stands still too (timed focus, its hold)
     { // the glass disc behind the diagram follows its circle: place, size and fade
       const o = +getComputedStyle(fwEl).opacity;
       if (o > 0.005) { const c = fwEl.querySelector(":scope > circle").getBoundingClientRect(), p = fwGlass.offsetParent.getBoundingClientRect();
@@ -582,7 +616,8 @@
     { // the active segment fills with the progress through its steps
       let f = anim ? anim.k : 1;
       if (Q) { let done = 0, all = 0; Q.bars.forEach((d, b) => { all += d; if (b < S.bar) done += d; }); f = (done + clamp((now - barStart) / Q.bars[S.bar], 0, 1) * Q.bars[S.bar]) / all; }
-      segFills[segOf(at)].style.transform = `scaleX(${f.toFixed(3)})`; tlDot.style.left = (f * 100).toFixed(2) + "%"; }
+      segFills[segOf(at)].style.transform = `scaleX(${f.toFixed(3)})`; tlDot.style.left = (f * 100).toFixed(2) + "%";
+      if (Q && stepFills.length) stepFills.forEach((el, b) => { el.style.transform = `scaleX(${b < S.bar ? 1 : b > S.bar ? 0 : clamp((now - barStart) / Q.bars[S.bar], 0, 1).toFixed(3)})`; }); }   // the panel's bar per step
     // focus
     const ease = 1 - Math.exp(-dt * 7);
     // the audience and the grass (hidden in the opening) change only where nobody sees it: while the camera still sees their place during a move
@@ -643,7 +678,7 @@
     tick();
   }
   // tuning hook: __story.go(i) jumps to a stop, __story.stops lists them
-  window.__story = { go: i => goTo(typeof i === "string" ? idx(i) : i, true), stops: STOPS, pause: setPaused };
+  window.__story = { go: i => goTo(typeof i === "string" ? idx(i) : i, true), stops: STOPS, pause: setPaused, hold: setHeld };   // hold: the visitor's pause button
   window.__scene = { root, camera, view: (pos, target) => { anim = null; camera.position.copy(pos); camTarget.copy(target); } };
 })();
 </script>

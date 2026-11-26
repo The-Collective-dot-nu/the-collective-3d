@@ -15,7 +15,7 @@
   --font-serif: "EB Garamond", Garamond, Georgia, serif; --font-sans: "Restart Soft", "Figtree", ui-sans-serif, system-ui, sans-serif;
   --text-ui: .75rem; --text-body: var(--text-ui); --leading-body: 1.6; --text-lede: clamp(1.05rem, 1.45vw, 1.4rem); --text-beat: clamp(1.5rem, 2.3vw, 2.25rem); --text-h3: 1.45rem; --text-h3-sm: 1.25rem;
   --space-3xs: .25rem; --space-2xs: .4rem; --space-xs: .6rem; --space-s: .85rem; --space-m: 1.25rem; --space-l: 1.75rem;
-  --gutter: clamp(20px, 7vw, 120px); --nav-top: calc(20px + env(safe-area-inset-top, 0px)); --brand-nudge: 9.5px; --beat-width: 46rem; --panel-width: 20rem; --panel-offset: 72px; --timeline-offset: 30px; --space-segment: 4px; --problems-top: max(84px, calc((100vh - 2.3rem - var(--problems-fw-size) * .875) / 2)); --problems-fw-size: min(52vh, 36vw);
+  --gutter: clamp(20px, 7vw, 120px); --nav-top: calc(20px + env(safe-area-inset-top, 0px)); --brand-nudge: 9.5px; --beat-width: 46rem; --panel-width: 25rem; --panel-offset: 72px; --timeline-offset: 30px; --space-segment: 4px; --problems-top: max(84px, calc((100vh - 2.3rem - var(--problems-fw-size) * .875) / 2)); --problems-fw-size: min(52vh, 36vw);
   --radius-glass: 18px; --radius-pill: 999px; --blur-glass: blur(18px) saturate(1.15);
   --shadow-glass: 0 20px 50px -30px rgb(0 0 0 / .6); --shadow-text: 0 1px 30px rgb(var(--rgb-shadow) / .45);
   --ease-out: cubic-bezier(.16, .84, .24, 1); --ease-in-out: cubic-bezier(.4, 0, .6, 1);
@@ -80,7 +80,7 @@ p, ul, h1, h2 { margin: 0; }
   padding: var(--space-m); opacity: 0; visibility: hidden; transform: translate3d(0, 18px, 0) scale(.98);
   transition: opacity .45s ease, transform .55s var(--ease-in-out), visibility 0s linear .55s;
 }
-.panel.is-on { opacity: 1; visibility: visible; pointer-events: auto; transform: none; transition: opacity .7s ease, transform var(--dur-slow) var(--ease-out), visibility 0s; }
+.panel.is-on { opacity: 1; visibility: visible; pointer-events: auto; transform: none; transition: opacity .7s ease .45s, transform var(--dur-slow) var(--ease-out) .45s, visibility 0s; }   /* the camera and the caption first, the panel just after */
 .panel > * { opacity: 0; transform: translateY(8px); transition: opacity var(--dur-fast) ease, transform var(--dur-fast) ease; }
 .panel.is-on > * { opacity: 1; transform: none; transition: opacity var(--dur-base) ease, transform .7s var(--ease-out); }
 .panel.is-on > :nth-child(1) { transition-delay: calc(var(--stagger) * 2); }
@@ -130,26 +130,35 @@ p, ul, h1, h2 { margin: 0; }
 /* ---- chrome ---- */
 .brand { all: unset; cursor: pointer; position: fixed; z-index: 4; top: calc(var(--nav-top) + var(--brand-nudge)); left: var(--gutter); font: 500 .6875rem/1 var(--font-sans); letter-spacing: .16em; text-transform: uppercase; color: var(--color-text); }
 .brand:focus-visible { outline: 2px solid var(--color-highlight); outline-offset: 3px; }
-/* ---- timeline: the story navigator. One segment per scroll step; the active one fills as its steps play ---- */
+/* ---- timeline: the story navigator, a player bar bottom centre (Kai). It shows on mouse movement, at the start and at every new part, then fades;
+   one segment per scroll step, the active one fills as its steps play; previous, pause and next beside it; hovering a segment shows its name above it ---- */
 .timeline {
-  --timeline-bar-width: var(--panel-width); --timeline-seg-min: 24px; --timeline-hit: 32px; --timeline-line: 1px; --timeline-line-hover: 3px;
-  --timeline-dot-size: 5px;
-  position: absolute; z-index: 4; left: var(--gutter); right: var(--gutter); bottom: calc(var(--timeline-offset) - (var(--timeline-hit) - var(--text-ui)) / 2);
-  display: flex; align-items: center; gap: var(--space-s); pointer-events: none;
-  font: 400 var(--text-ui)/1 var(--font-sans); font-variant-numeric: tabular-nums; color: var(--color-text-muted); }
-.timeline__bar { pointer-events: auto; display: flex; gap: var(--space-segment); width: var(--timeline-bar-width); }
+  --timeline-width: min(30rem, calc(100vw - 2 * var(--gutter))); --timeline-seg-min: 18px; --timeline-hit: 32px; --timeline-line: 2px; --timeline-line-hover: 4px;
+  --timeline-dot-size: 7px; --timeline-label-x: 50%;
+  position: absolute; z-index: 4; left: 50%; bottom: calc(var(--timeline-offset) - 10px); width: var(--timeline-width); transform: translateX(-50%);
+  display: flex; align-items: center; gap: 2px; padding: 4px 8px; border-radius: var(--radius-pill);
+  background: rgb(var(--rgb-shadow) / .42); -webkit-backdrop-filter: var(--blur-glass); backdrop-filter: var(--blur-glass); border: 1px solid var(--panel-border); box-shadow: var(--shadow-glass);
+  font: 400 var(--text-ui)/1 var(--font-sans); font-variant-numeric: tabular-nums; color: var(--color-text-muted);
+  opacity: 0; pointer-events: none; transition: opacity .8s ease; }
+.timeline.is-awake, .timeline:hover, .timeline:focus-within { opacity: 1; pointer-events: auto; transition: opacity .25s ease; }
+@media (hover: none) { .timeline { opacity: 1; pointer-events: auto; } }   /* touch screens have no mouse to wake it: always there */
+.timeline__bar { flex: 1 1 auto; display: flex; gap: var(--space-segment); margin: 0 8px; }
 .timeline__seg { all: unset; cursor: pointer; flex: 1 1 0; min-width: var(--timeline-seg-min); height: var(--timeline-hit); display: flex; align-items: center; }
-.timeline__line { position: relative; width: 100%; height: var(--timeline-line); background: var(--color-line); transition: height var(--dur-fast) ease; }
+.timeline__line { position: relative; width: 100%; height: var(--timeline-line); border-radius: 2px; background: var(--color-line); transition: height var(--dur-fast) ease; }
 .timeline__seg:hover .timeline__line, .timeline__seg:focus-visible .timeline__line { height: var(--timeline-line-hover); }
-.timeline__fill { position: absolute; inset: 0; background: var(--color-text); transform-origin: 0 0; transform: scaleX(0); }
+.timeline__fill { position: absolute; inset: 0; border-radius: inherit; background: var(--color-text); transform-origin: 0 0; transform: scaleX(0); }
 .timeline__dot { position: absolute; top: 50%; width: var(--timeline-dot-size); height: var(--timeline-dot-size); margin: calc(var(--timeline-dot-size) / -2) 0 0 calc(var(--timeline-dot-size) / -2);
   border-radius: 50%; background: var(--color-highlight); }
-.timeline__label { color: var(--color-text); }
-.timeline__skip { all: unset; pointer-events: auto; cursor: pointer; font: 500 var(--text-ui)/1 var(--font-sans); color: var(--color-text); opacity: 0; visibility: hidden;
-  transition: opacity var(--dur-fast) ease, visibility 0s linear var(--dur-fast); }
-.timeline__skip.is-on { opacity: .82; visibility: visible; transition: opacity var(--dur-fast) ease, visibility 0s; }
-.timeline__skip.is-on:hover { opacity: 1; }
-.timeline__seg:focus-visible, .timeline__skip:focus-visible { outline: 2px solid var(--color-highlight); outline-offset: 3px; border-radius: 4px; }
+.timeline__label { position: absolute; left: var(--timeline-label-x); bottom: calc(100% + 10px); transform: translateX(-50%); white-space: nowrap; padding: 5px 10px; border-radius: var(--radius-pill);
+  background: rgb(var(--rgb-shadow) / .42); -webkit-backdrop-filter: var(--blur-glass); backdrop-filter: var(--blur-glass); color: var(--color-text); transition: left .2s var(--ease-out); }
+.timeline__btn { all: unset; box-sizing: border-box; cursor: pointer; flex: none; display: grid; place-items: center; width: var(--timeline-hit); height: var(--timeline-hit); border-radius: 50%; color: var(--color-text);
+  transition: background-color var(--dur-fast) ease, opacity var(--dur-fast) ease; }
+.timeline__btn svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.timeline__btn:hover { background: rgb(var(--rgb-paper) / .1); }
+.timeline__btn[aria-disabled="true"] { opacity: .3; cursor: default; background: none; }
+.timeline__btn--play .i-play { display: none; fill: currentColor; stroke: none; }
+.timeline__btn--play.is-paused .i-play { display: block; } .timeline__btn--play.is-paused .i-pause { display: none; }
+.timeline__seg:focus-visible, .timeline__btn:focus-visible { outline: 2px solid var(--color-highlight); outline-offset: 2px; border-radius: 6px; }
 .loading { position: absolute; right: var(--gutter); bottom: var(--timeline-offset); pointer-events: none; font: 400 var(--text-ui)/1 var(--font-sans); color: var(--color-text-muted); }
 .loading, .loading[hidden] { display: none; }
 /* loader: the opening photo and text, with a percentage, until the whole scene, people included, is ready */
@@ -171,9 +180,9 @@ p, ul, h1, h2 { margin: 0; }
 @media (max-width: 720px) {
   .beat:not(.beat--centred) { top: 13vh; }
   .problems__col { padding: var(--space-s) var(--space-m); background: var(--panel-fill); -webkit-backdrop-filter: var(--blur-glass); backdrop-filter: var(--blur-glass); border: 1px solid var(--panel-border); border-radius: var(--radius-glass); }   /* phones: the list lies over the stage, so it sits on a panel */
-  .timeline { display: grid; grid-template-columns: 1fr auto; grid-template-areas: "label skip" "bar bar"; column-gap: var(--space-s); row-gap: var(--space-3xs); }
-  .timeline__label { grid-area: label; } .timeline__skip { grid-area: skip; }
-  .timeline__bar { grid-area: bar; width: auto; }
+  .timeline { --timeline-width: calc(100vw - 2 * var(--gutter)); --timeline-seg-min: 8px; --timeline-label-x: 0; padding: 2px 4px 2px 12px; }
+  .timeline__label { position: static; transform: none; padding: 0; background: none; -webkit-backdrop-filter: none; backdrop-filter: none; margin-right: 2px; }   /* phones: the name inside the bar, nothing over the panel */
+  .timeline__bar { margin: 0 4px; }
   .panel { left: var(--gutter); right: var(--gutter); width: auto; padding: var(--space-s) var(--space-m); }
   .panel__title { max-width: 12em; font-size: var(--text-h3-sm); }   /* wraps sooner on phones: shorter lines read better */
   .panel__org { margin-top: var(--space-2xs, .5rem); padding-top: var(--space-2xs, .5rem); }
@@ -316,3 +325,37 @@ p, ul, h1, h2 { margin: 0; }
 .panel__org b { display: block; font-weight: 400; }
 .panel__org .org-chg { max-height: 0; overflow: hidden; opacity: 0; transition: opacity .8s ease, max-height .8s ease; }
 .panel__org .org-chg.is-late { max-height: 6em; opacity: 1; margin-top: .45em; }
+/* ---- the story panels, larger (Kai), with the framework small on top: where we are in it ---- */
+.panel { padding: var(--space-l); }
+.panel__title { font-size: 1.7rem; }
+.panel__body, .panel__org { font-size: .82rem; }
+.panel__fw { float: right; width: 136px; height: auto; margin: -8px -8px var(--space-xs) var(--space-m); overflow: visible; }
+.panel__fw .ring { fill: rgb(var(--rgb-shadow) / .25); stroke: rgb(var(--rgb-paper) / .3); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.panel__fw .part { fill: rgb(var(--rgb-paper) / .06); stroke: rgb(var(--rgb-paper) / .3); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.panel__fw .arc { fill: none; stroke: rgb(var(--rgb-paper) / .3); stroke-width: 1.2; vector-effect: non-scaling-stroke; }
+.panel__fw .is-seen .part { fill: rgb(var(--rgb-paper) / .2); stroke: rgb(var(--rgb-paper) / .45); }
+.panel__fw .is-seen .arc { stroke: rgb(var(--rgb-paper) / .55); }
+.panel__fw .is-now .part { fill: var(--color-highlight); stroke: var(--color-highlight); }   /* the part we are in: bright */
+.panel__fw .is-now .arc { stroke: var(--color-highlight); stroke-width: 2.4; }
+.panel__fw .is-later { opacity: .55; }
+/* in a part that plays by itself, each step adds a text (after the camera and the caption) and the panel grows with it */
+.panel__more-text { display: grid; grid-template-rows: 0fr; opacity: 0; transition: grid-template-rows .6s var(--ease-out) .5s, opacity .7s ease .8s; }
+.panel__more-text.is-in { grid-template-rows: 1fr; opacity: 1; }
+.panel__more-text > p { min-height: 0; overflow: hidden; padding-top: var(--space-s); font: 400 .82rem/var(--leading-body) var(--font-sans); color: var(--color-text); }
+.panel__steps { display: flex; gap: var(--space-segment); clear: both; }
+.panel__steps:not(:empty) { margin: var(--space-s) 0 calc(-1 * var(--space-2xs)); }
+.panel__step { all: unset; cursor: pointer; flex: 1 1 0; height: 20px; display: flex; align-items: center; }
+.panel__step > span { position: relative; width: 100%; height: 2px; border-radius: 2px; background: var(--color-line-soft); overflow: hidden; transition: height var(--dur-fast) ease; }
+.panel__step:hover > span, .panel__step:focus-visible > span { height: 4px; }
+.panel__step i { position: absolute; inset: 0; background: var(--color-highlight); transform-origin: 0 0; transform: scaleX(0); }
+.panel__step:focus-visible { outline: 2px solid var(--color-highlight); outline-offset: 2px; border-radius: 4px; }
+@media (max-width: 720px) {
+  .panel { padding: var(--space-s) var(--space-m); }
+  .panel__title { font-size: var(--text-h3-sm); }
+  .panel__fw { width: 76px; margin: -4px -6px 4px var(--space-s); }
+  .panel__body, .panel__org, .panel__more-text > p { font-size: .74rem; }
+}
+/* ---- problems: a framework part lights the problems it helps solve (Kai), the others step back ---- */
+.problems.is-on.has-focus .prob:not(.is-lit):not(:hover) { opacity: .32; }
+.prob.is-lit { border-color: var(--color-line); background-color: var(--panel-fill); }
+.prob.is-lit .prob__line { color: var(--color-highlight); }
