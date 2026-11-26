@@ -295,7 +295,7 @@
     tlSkip.setAttribute("aria-disabled", lastSeg); tlPrev.setAttribute("aria-disabled", n === 0 && at === 0);   // Next everywhere but the last part, Previous everywhere but the opening
     tlPlay.setAttribute("aria-disabled", !S.seq);   // pause only means something in a part that plays by itself
     if (n !== curSeg) { curSeg = n; wake(3200); }   // every new part shows the bar for a moment
-    panelSteps(S); setTeaser(S); music.sync(STOPS.indexOf(S));
+    panelSteps(S); music.sync(STOPS.indexOf(S));
   }
   /* ---------- the story panels: a small framework on top (where we are), and in a part that plays by itself one more text per step, with a bar per step ---------- */
   const PANEL_PART = { plan: "p", blueprint: "b", means: "m", orchestration: "o", dims: "rc" }, PART_ORDER = ["plan", "blueprint", "means", "orchestration", "dims"];
@@ -427,8 +427,7 @@
   const WHEEL_REST = 0.45; let wheelQuiet = 0, wheelAcc = 0;
   addEventListener("wheel", e => {
     if (e.target.closest && e.target.closest("[data-drawer]")) return;   // an open side panel scrolls itself
-    if (e.target.closest && e.target.closest("[data-teaser]") && teaser.scrollHeight > teaser.clientHeight + 4) return;   // so does the Plan teaser when it is taller than the screen
-    e.preventDefault();
+        e.preventDefault();
     const now = clock.getElapsedTime(), quiet = now - wheelQuiet; wheelQuiet = now;
     if ((anim && anim.k < 0.85) || quiet < WHEEL_REST && wheelAcc === 0) return;
     wheelAcc += e.deltaY; if (Math.abs(wheelAcc) < 24) return;
@@ -445,8 +444,8 @@
   });
   let touchY = null;
   stage.addEventListener("touchstart", e => { touchY = e.touches[0].clientY; }, { passive: true });
-  stage.addEventListener("touchmove", e => { if (!e.target.closest(".problems, .coll__page, [data-drawer], [data-teaser]")) e.preventDefault(); }, { passive: false });
-  stage.addEventListener("touchend", e => { if (touchY === null) return; if (e.target.closest("[data-drawer], [data-teaser]")) { touchY = null; return; } for (const sel of [".coll__page", ".problems"]) { const el = e.target.closest(sel); if (el && el.scrollHeight > el.clientHeight + 4) { touchY = null; return; } } const dy = touchY - e.changedTouches[0].clientY; touchY = null; if (Math.abs(dy) > 40) step(Math.sign(dy)); });   // a list that scrolls (About, problems on phones) is scrolled, not swiped away
+  stage.addEventListener("touchmove", e => { if (!e.target.closest(".problems, .coll__page, [data-drawer]")) e.preventDefault(); }, { passive: false });
+  stage.addEventListener("touchend", e => { if (touchY === null) return; if (e.target.closest("[data-drawer]")) { touchY = null; return; } for (const sel of [".coll__page", ".problems"]) { const el = e.target.closest(sel); if (el && el.scrollHeight > el.clientHeight + 4) { touchY = null; return; } } const dy = touchY - e.changedTouches[0].clientY; touchY = null; if (Math.abs(dy) > 40) step(Math.sign(dy)); });   // a list that scrolls (About, problems on phones) is scrolled, not swiped away
   const segBtns = SEGS.map((g, n) => { const b = document.createElement("button");
     b.type = "button"; b.className = "timeline__seg"; b.dataset.timelineSeg = n; b.tabIndex = -1;
     b.setAttribute("aria-label", `${STORY.goTo} ${STOPS[g.first].name}`);
@@ -476,7 +475,7 @@
       + section(LABELS.wrong, `<p class="drawer__text">${esc(P.wrong)}</p>`) + section(LABELS.solve, `<p class="drawer__text">${esc(P.solve)}</p>`) + backstageHTML(P.id); }
   function partHTML(k) { const T = PARTS[k];   // the problems it helps solve light up in the list on the left, not here (Kai: they stood there twice)
     return `<p class="drawer__kicker">${esc(T.name)} · ${esc(T.sub)}</p><h2 class="drawer__title">${esc(T.title)}</h2><p class="drawer__question">${esc(T.question)}</p><p class="drawer__text">${esc(T.text)}</p>`
-      + section(LABELS.org, `<p class="drawer__text">${esc(T.org)}</p>`) + backstageHTML(k); }
+      + section(LABELS.org, `<p class="drawer__text">${esc(T.org)}</p>`) + instHTML(k) + backstageHTML(k); }
   /* ---------- Backstage pass: a teaser, then the full text after the password (decrypted here; the texts are encrypted in site/backstage.json) ---------- */
   const bs = { file: null, key: null };
   const b64 = t => Uint8Array.from(atob(t), c => c.charCodeAt(0));
@@ -500,42 +499,76 @@
   }
   document.addEventListener("click", e => { const b = e.target.closest && e.target.closest(".backstage__open"); if (!b) return;
     const el = b.closest(".backstage"), body = el.querySelector(".backstage__body"), open = body.hidden; body.hidden = !open; b.setAttribute("aria-expanded", open);
-    if (open && bs.key) bsReveal(el); else if (open) { const i = body.querySelector("input"); i && i.focus({ preventScroll: true }); } });
+    if (open && bs.key) { bsReveal(el); instDeep(); } else if (open) { const i = body.querySelector("input"); i && i.focus({ preventScroll: true }); } });
   document.addEventListener("submit", async e => { const form = e.target.closest && e.target.closest(".backstage__form"); if (!form) return; e.preventDefault();
     const el = form.closest(".backstage"), msg = el.querySelector(".backstage__msg"), pw = form.querySelector("input").value;
-    try { bs.key = await bsKey(pw); await bsReveal(el); } catch (err) { msg.textContent = err.message === "nocrypto" ? BACKSTAGE.nocrypto : BACKSTAGE.wrong; form.querySelector("input").select(); } });   // the key stays for this visit only
-  /* ---------- Plan teaser (Kai): the Plan part of the instruments score; an instrument and its stages light each other; how it plays in the framework is behind the Backstage pass ("i-<id>") ---------- */
-  var teaser = $("[data-teaser]"), teaserSel = null;
-  { const T = PLAN_TEASER, X = { ambition: 34, goals: 128, initiatives: 232, choose: 350 }, svg = [];
-    const ln = (d, c) => svg.push(`<path class="lnk${c ? " " + c : ""}" d="${d}"/>`);
-    const G = [86, 132, 178], I = [[64, [0], 0], [86, [0], 1], [109, [0, 1], 0, 1], [132, [1], 0], [155, [1], 1], [178, [2], 2], [200, [2], 1], [222, [], 3]], B = [[70, "Now"], [112, "Next"], [154, "Later"], [204, "Not now"]];
-    G.forEach(y => ln(`M52 132 C80 132 84 ${y} 104 ${y}`));
-    I.forEach(([y, gs, b, syn]) => { gs.forEach(g => ln(`M152 ${G[g]} C190 ${G[g]} 192 ${y} 226 ${y}`, syn ? "syn" : "")); ln(`M238 ${y} C280 ${y} 284 ${B[b][0]} 312 ${B[b][0]}`, b === 0 ? "go" : ""); });
-    const stage = (k, w, inner) => `<g class="ts" data-st="${k}"><rect class="halo" x="${X[k] - w / 2}" y="0" width="${w}" height="236" rx="6"/><text class="stn" x="${X[k]}" y="18" text-anchor="middle">${esc(T.stages.find(x => x.k === k).name.toUpperCase())}</text>${inner}</g>`;
-    const amb = `<circle class="nd" cx="34" cy="132" r="18"/><path d="M34 119l4 13-4-2.5-4 2.5z" fill="var(--color-highlight)"/>`;
-    const goals = G.map(y => `<rect class="nd" x="104" y="${y - 12}" width="48" height="24" rx="4"/><text class="lbl" x="128" y="${y + 3.5}" text-anchor="middle">Goal</text>`).join("");
-    const inits = I.map(([y, gs, b, syn]) => gs.length ? `<circle class="nd" cx="232" cy="${y}" r="${[7, 4.5, 7, 3.5, 5.5, 4.5, 7][I.findIndex(r => r[0] === y)] || 5}"${syn ? ' style="stroke:var(--color-highlight)"' : ""}/>` : `<circle class="orph" cx="232" cy="${y}" r="5"/>`).join("");
-    const buckets = B.map(([y, n], i) => `<rect class="nd" x="312" y="${y - 13}" width="76" height="26" rx="4"${i === 3 ? ' style="stroke:rgb(241 64 11 / .55)"' : ""}/><text class="lbl" x="324" y="${y + 3.5}">${n}</text>`).join("");
-    teaser.innerHTML = `<button class="close close--corner teaser__close" type="button" data-teaser-close aria-label="${esc(T.close)}"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M1.5 1.5L10.5 10.5M10.5 1.5L1.5 10.5"/></svg></button>
-      <p class="teaser__kicker">${esc(T.kicker)}</p><h2 class="teaser__title">${esc(T.title)}</h2><p class="teaser__lead">${esc(T.lead)}</p>
-      <svg class="teaser__score" viewBox="0 0 400 236" aria-hidden="true">${svg.join("")}${stage("ambition", 60, amb)}${stage("goals", 72, goals)}${stage("initiatives", 64, inits)}${stage("choose", 96, buckets)}</svg>
-      <div class="teaser__chips">${T.instruments.map(x => `<button class="teaser__chip" type="button" aria-pressed="false" data-i="${x.id}">${esc(x.n)}</button>`).join("")}</div>
-      <div class="teaser__detail" aria-live="polite"><p class="teaser__hint">${esc(T.hint)}</p></div>`; }
-  function setTeaser(S) { if (!teaser) return; const on = S.panel === "plan"; teaser.classList.toggle("is-on", on); if (!on) teaser.classList.remove("is-open"); }
-  { const score = teaser.querySelector(".teaser__score"), chips = teaser.querySelector(".teaser__chips"), detail = teaser.querySelector(".teaser__detail"), byId = id => PLAN_TEASER.instruments.find(x => x.id === id);
-    const light = (st, ids) => { score.classList.toggle("is-dim", !!st); score.querySelectorAll(".ts").forEach(g => g.classList.toggle("is-lit", !!st && st.includes(g.dataset.st)));
-      chips.classList.toggle("is-dim", !!ids); chips.querySelectorAll(".teaser__chip").forEach(c => c.classList.toggle("is-lit", !!ids && ids.includes(c.dataset.i))); };
-    const rest = () => teaserSel ? light(byId(teaserSel).st, null) : light(null, null);
-    const pick = c => { const x = byId(c.dataset.i); teaserSel = x.id; chips.querySelectorAll(".teaser__chip").forEach(b => b.setAttribute("aria-pressed", b === c));
-      detail.innerHTML = `<h3>${esc(x.n)}</h3><p>${esc(x.w)}</p>` + backstageHTML("i-" + x.id); rest();
-      if (bs.key) { const el = detail.querySelector(".backstage"); el.querySelector(".backstage__body").hidden = false; bsReveal(el).catch(() => {}); } };   // once in, every instrument opens at once
-    chips.addEventListener("pointerover", e => { const c = e.target.closest(".teaser__chip"); if (c) { const x = byId(c.dataset.i); light(x.st, [x.id]); } });
-    chips.addEventListener("focusin", e => { const c = e.target.closest(".teaser__chip"); if (c) { const x = byId(c.dataset.i); light(x.st, [x.id]); } });
-    chips.addEventListener("pointerleave", rest); chips.addEventListener("focusout", rest);
-    chips.addEventListener("click", e => { const c = e.target.closest(".teaser__chip"); if (c) pick(c); });
-    score.querySelectorAll(".ts").forEach(g => { g.addEventListener("pointerenter", () => light([g.dataset.st], PLAN_TEASER.instruments.filter(x => x.st.includes(g.dataset.st)).map(x => x.id))); g.addEventListener("pointerleave", rest); });
-    $("[data-teaser-open]").addEventListener("click", () => teaser.classList.add("is-open"));
-    teaser.querySelector("[data-teaser-close]").addEventListener("click", () => teaser.classList.remove("is-open")); }
+    try { bs.key = await bsKey(pw); await bsReveal(el); instDeep(); } catch (err) { msg.textContent = err.message === "nocrypto" ? BACKSTAGE.nocrypto : BACKSTAGE.wrong; form.querySelector("input").select(); } });   // the key stays for this visit only
+  /* ---------- the instruments per part (Kai): in a part's panel on the problems stop, the methods we use for it and a small picture of where each plays; how it plays in the framework is behind the Backstage pass ("i-<id>") ---------- */
+  const INST_KEY = { p: "p", b: "b", m: "m", o: "o", r: "rc", c: "rc" };
+  function instSVG(key) {
+    const T = INSTRUMENTS[key], nm = k => esc(T.stages.find(x => x.k === k).name.toUpperCase()), out = [];
+    const g = (k, x, y, w, h, inner, lx, ly, anchor) => out.push(`<g class="ts" data-st="${k}"><rect class="halo" x="${x}" y="${y}" width="${w}" height="${h}" rx="6"/><text class="stn" x="${lx}" y="${ly}" text-anchor="${anchor || "middle"}">${nm(k)}</text>${inner}</g>`);
+    const ln = (d, c) => `<path class="lnk${c ? " " + c : ""}" d="${d}"/>`, nd = (x, y, w, h, t, st) => `<rect class="nd" x="${x}" y="${y}" width="${w}" height="${h}" rx="4"${st ? ` style="${st}"` : ""}/>` + (t ? `<text class="lbl" x="${x + 10}" y="${y + h / 2 + 3.5}">${t}</text>` : "");
+    if (key === "p") {
+      const G = [86, 132, 178], I = [[64, [0], 0, 7], [86, [0], 1, 4.5], [109, [0, 1], 0, 7, 1], [132, [1], 0, 3.5], [155, [1], 1, 5.5], [178, [2], 2, 4.5], [200, [2], 1, 7], [222, [], 3, 5]], B = [[70, "Now"], [112, "Next"], [154, "Later"], [204, "Not now"]];
+      let L = G.map(y => ln(`M52 132 C80 132 84 ${y} 104 ${y}`)).join("");
+      I.forEach(([y, gs, b, , syn]) => { L += gs.map(i => ln(`M152 ${G[i]} C190 ${G[i]} 192 ${y} 226 ${y}`, syn ? "syn" : "")).join("") + ln(`M238 ${y} C280 ${y} 284 ${B[b][0]} 312 ${B[b][0]}`, b === 0 ? "go" : ""); });
+      out.push(L);
+      g("ambition", 4, 0, 60, 236, `<circle class="nd" cx="34" cy="132" r="18"/><path d="M34 119l4 13-4-2.5-4 2.5z" class="hl"/>`, 34, 18);
+      g("goals", 92, 0, 72, 236, G.map(y => nd(104, y - 12, 48, 24, "Goal")).join(""), 128, 18);
+      g("initiatives", 200, 0, 64, 236, I.map(([y, gs, , r, syn]) => gs.length ? `<circle class="nd${syn ? " is-hl" : ""}" cx="232" cy="${y}" r="${r}"/>` : `<circle class="orph" cx="232" cy="${y}" r="${r}"/>`).join(""), 232, 18);
+      g("choose", 302, 0, 96, 236, B.map(([y, n], i) => nd(312, y - 13, 76, 26, n, i === 3 ? "stroke:rgb(241 64 11 / .55)" : "")).join(""), 350, 18);
+    } else if (key === "b") {
+      let ch = ""; for (let i = 0; i < 5; i++) { const x = 118 + i * 56; ch += `<path class="nd${i === 2 ? " is-leak" : ""}" d="M${x} 34h48l8 13-8 13h-48l8-13z"/>`; }
+      g("stream", 4, 4, 392, 66, ch, 12, 52, "start");
+      let ly = ""; ["BUSINESS", "DATA", "TECH"].forEach((n, j) => { const y = 90 + j * 30; ly += `<text class="stn sm" x="12" y="${y + 10}">${n}</text>`; for (let i = 0; i < 5; i++) ly += `<rect class="cell${i === 2 ? " is-leak" : j < 2 || i === 1 ? " is-gold" : ""}" x="${126 + i * 56}" y="${y}" width="44" height="14" rx="2"/>`; });
+      ly += `<path class="leakline" d="M238 64V170"/>`;
+      g("layers", 4, 76, 392, 104, ly, 12, 82, "start");
+      g("choice", 4, 186, 392, 46, `<rect class="cell is-gold" x="126" y="204" width="14" height="14" rx="2"/><text class="lbl" x="146" y="215">stand out: build</text><rect class="cell" x="262" y="204" width="14" height="14" rx="2"/><text class="lbl" x="282" y="215">standard: off the shelf</text>`, 12, 215, "start");
+    } else if (key === "m") {
+      let pot = `<text class="stn sm" x="300" y="22" text-anchor="middle">RUN | CHANGE</text>`; [["People", .7], ["Skills", .6], ["Tools", .75], ["Money", .8], ["Partners", .45]].forEach(([n, r], j) => { const y = 32 + j * 20; pot += `<text class="lbl" x="118" y="${y + 10}">${n}</text><rect class="pot-run" x="186" y="${y}" width="${(208 * r - 2).toFixed(0)}" height="12" rx="2"/><rect class="pot-change" x="${(186 + 208 * r).toFixed(0)}" y="${y}" width="${(208 * (1 - r)).toFixed(0)}" height="12" rx="2"/>`; });
+      g("pot", 4, 4, 392, 128, pot, 12, 22, "start");
+      g("need", 4, 138, 392, 44, ["Build", "Buy", "Borrow"].map((n, i) => `<rect class="nd" x="${118 + i * 90}" y="146" width="80" height="26" rx="13"/><text class="lbl" x="${158 + i * 90}" y="163" text-anchor="middle">${n}</text>`).join(""), 12, 163, "start");
+      g("case", 4, 188, 392, 46, [["conservative", 70], ["realistic", 110], ["ultimate", 150]].map(([n, w], i) => `<rect class="pot-run" x="${118 + i * 92}" y="${222 - w / 8}" width="80" height="${w / 8}" rx="2"/><text class="lbl sm" x="${158 + i * 92}" y="232" text-anchor="middle">${n}</text>`).join(""), 12, 212, "start");
+    } else if (key === "o") {
+      let t = ""; ["SALES", "OPS", "FIN", "IT"].forEach((n, i) => { const x = 12 + i * 52; t += `<rect class="func" x="${x}" y="30" width="44" height="170" rx="3"/><text class="stn sm" x="${x + 22}" y="44" text-anchor="middle">${n}</text>`; });
+      t += `<rect class="stream" x="6" y="70" width="216" height="22" rx="11"/><text class="lbl hl" x="16" y="85">product team · stream A</text><rect class="stream" x="6" y="104" width="216" height="22" rx="11"/><text class="lbl hl" x="16" y="119">product team · stream B</text>`;
+      t += `<rect class="plat" x="6" y="170" width="216" height="20" rx="3"/><text class="lbl" x="16" y="184">platform · as a service</text><rect class="enab" x="228" y="66" width="14" height="64" rx="7"/>`;
+      g("teams", 2, 2, 248, 232, t, 128, 18);
+      let k = ""; for (let i = 0; i < 4; i++) { k += `<rect class="func" x="${262 + i * 17}" y="30" width="14" height="170" rx="2"/>`; for (let j = 0; j < [3, 2, 3, 4][i]; j++) k += `<rect class="${i === 3 ? "card done" : "card"}" x="${264 + i * 17}" y="${36 + j * 18}" width="10" height="13" rx="1"/>`; }
+      g("board", 256, 2, 74, 232, k, 293, 18);
+      g("rhythm", 334, 2, 64, 232, `<circle class="nd" cx="366" cy="110" r="10"/><circle class="ring" cx="366" cy="110" r="20"/><circle class="ring faint" cx="366" cy="110" r="29"/><text class="lbl sm" x="366" y="162" text-anchor="middle">week</text><text class="lbl sm" x="366" y="176" text-anchor="middle">quarter</text><text class="lbl sm" x="366" y="190" text-anchor="middle">year</text>`, 366, 18);
+    } else {
+      let r = ""; ["SALES", "OPS", "FINANCE", "IT"].forEach((n, i) => { r += `<rect class="func" x="${110 + i * 52}" y="34" width="44" height="54" rx="3"/><text class="stn sm" x="${132 + i * 52}" y="66" text-anchor="middle">${n}</text>`; });
+      g("run", 4, 4, 310, 98, r, 12, 66, "start");
+      g("change", 4, 110, 310, 98, `<rect class="stream" x="110" y="146" width="200" height="24" rx="12"/><text class="lbl hl" x="122" y="162">team across departments</text>`, 12, 162, "start");
+      g("land", 320, 4, 76, 204, `<path class="lnk go" d="M310 158C350 158 358 120 358 70"/><path class="hlline" d="M352 78l6-10 6 10"/><text class="lbl sm" x="358" y="196" text-anchor="middle">lands in Run</text>`, 358, 22);
+    }
+    return out.join("");
+  }
+  function instHTML(k) { const key = INST_KEY[k], T = INSTRUMENTS[key]; if (!T) return "";
+    return `<div class="inst" data-inst="${key}">` + section(INSTRUMENTS_TEXT.label, `<p class="inst__lead">${esc(INSTRUMENTS_TEXT.lead)}</p>
+      <svg class="inst__score" viewBox="0 0 400 236" aria-hidden="true">${instSVG(key)}</svg>
+      <div class="inst__chips">${T.instruments.map(x => `<button class="inst__chip" type="button" aria-pressed="false" data-i="${x.id}">${esc(x.n)}</button>`).join("")}</div>
+      <div class="inst__detail" aria-live="polite"><p class="inst__hint">${esc(INSTRUMENTS_TEXT.hint)}</p></div>`) + `</div>`; }
+  { const find = el => { const box = el.closest(".inst"); return box && { box, T: INSTRUMENTS[box.dataset.inst] }; };
+    const light = (box, st, ids) => { const sc = box.querySelector(".inst__score"), ch = box.querySelector(".inst__chips");
+      sc.classList.toggle("is-dim", !!st); sc.querySelectorAll(".ts").forEach(g => g.classList.toggle("is-lit", !!st && st.includes(g.dataset.st)));
+      ch.classList.toggle("is-dim", !!ids); ch.querySelectorAll(".inst__chip").forEach(c => c.classList.toggle("is-lit", !!ids && ids.includes(c.dataset.i))); };
+    const rest = ({ box, T }) => { const sel = box.dataset.sel && T.instruments.find(x => x.id === box.dataset.sel); light(box, sel ? sel.st : null, null); };
+    const hover = e => { const f = e.target.closest && find(e.target); if (!f) return; const c = e.target.closest(".inst__chip"), g = e.target.closest(".ts");
+      if (c) { const x = f.T.instruments.find(i => i.id === c.dataset.i); light(f.box, x.st, [x.id]); }
+      else if (g) light(f.box, [g.dataset.st], f.T.instruments.filter(x => x.st.includes(g.dataset.st)).map(x => x.id)); else rest(f); };
+    document.addEventListener("pointerover", hover); document.addEventListener("focusin", hover);
+    document.addEventListener("pointerout", e => { const f = e.target.closest && find(e.target); if (f && !(e.relatedTarget && f.box.contains(e.relatedTarget))) rest(f); });
+    document.addEventListener("click", e => { const c = e.target.closest && e.target.closest(".inst__chip"); if (!c) return; const f = find(c), x = f.T.instruments.find(i => i.id === c.dataset.i);
+      f.box.dataset.sel = x.id; f.box.querySelectorAll(".inst__chip").forEach(b => b.setAttribute("aria-pressed", b === c));
+      f.box.querySelector(".inst__detail").innerHTML = `<h4 class="inst__name">${esc(x.n)}</h4><p class="drawer__text">${esc(x.w)}</p><div class="inst__deep"></div>`; rest(f); instDeep(); }); }
+  async function instDeep() {   // once the Backstage pass is in, the chosen instrument shows how it plays in the framework
+    if (!bs.key || !bs.file) return;
+    for (const box of document.querySelectorAll(".inst[data-sel]")) { const deep = box.querySelector(".inst__deep"), item = bs.file.items["i-" + box.dataset.sel]; if (!deep || !item || deep.dataset.i === box.dataset.sel) continue;
+      deep.dataset.i = box.dataset.sel; try { const T = await bsOpen(bs.key, item); deep.innerHTML = T.paras.map(t => `<p class="drawer__text">${esc(t)}</p>`).join(""); } catch (err) {} }
+  }
   function showDrawer(kind, html) {
     const d = drawers[kind], other = drawers[kind === "problem" ? "part" : "problem"];
     if (!drawerFrom || !drawerFrom.isConnected) drawerFrom = document.activeElement;
