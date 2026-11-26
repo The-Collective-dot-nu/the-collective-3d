@@ -366,6 +366,20 @@
         s.connect(bp); s.start(t); s.stop(t + d); t += d + 0.015; }
       return t - ctx.currentTime;
     }
+    // "When one part is off" (Kai): wherever the song happens to be, it sags and wobbles out of tune, like a warped record, then comes back
+    let sourOn = false, sourAmt = 0, sourTimer = null;
+    function setSour(v) {
+      if (v === sourOn) return; sourOn = v; if (!ctx || sourTimer) return;
+      for (const k in TRACKS) { const e = TRACKS[k].el; e.preservesPitch = e.mozPreservesPitch = e.webkitPreservesPitch = false; }
+      const t0 = performance.now();
+      sourTimer = setInterval(() => {
+        sourAmt = Math.max(0, Math.min(1, sourAmt + (sourOn ? 0.05 : -0.08)));   // in over about a second, out a little faster
+        const t = (performance.now() - t0) / 1000, r = 1 - sourAmt * (0.035 + 0.03 * Math.sin(t * 2 * Math.PI * 0.55) + 0.012 * Math.sin(t * 2 * Math.PI * 3.1));
+        for (const k in TRACKS) { if (!TRACKS[k].el.paused) TRACKS[k].el.playbackRate = r; }
+        if (nextSrc) nextSrc.playbackRate.value = r;
+        if (!sourOn && sourAmt === 0) { clearInterval(sourTimer); sourTimer = null; for (const k in TRACKS) TRACKS[k].el.playbackRate = 1; if (nextSrc) nextSrc.playbackRate.value = 1; }
+      }, 40);
+    }
     function startTrack(k) {
       if (k === "next" && scratchBuf) { if (nextSrc) return; const s = ctx.createBufferSource(); s.buffer = scratchBuf; s.loop = true; s.loopStart = NEXT_IN; s.loopEnd = scratchBuf.duration; s.connect(TRACKS.next.gain); s.start(0, NEXT_IN); nextSrc = s; return; }
       if (k === "next" && TRACKS.next.el.currentTime < NEXT_IN) TRACKS.next.el.currentTime = NEXT_IN;
@@ -381,14 +395,14 @@
     }
     function setOn(v) {
       on = v; btn.setAttribute("aria-pressed", v); btn.setAttribute("aria-label", v ? "Sound off" : "Sound on"); btn.classList.toggle("is-on", v); ask.classList.remove("is-on");
-      if (v) { if (!ctx) setup(); ctx.resume(); cur = null; play(want); }
+      if (v) { if (!ctx) setup(); ctx.resume(); cur = null; play(want); if (sourOn) { sourOn = false; setSour(true); } }
       else if (ctx) { for (const k in TRACKS) { fade(k, 0, 0.4); setTimeout(() => { if (!on) stopTrack(k); }, 450); } cur = null; }
     }
     btn.addEventListener("click", () => setOn(!on));
     $("[data-sound-yes]").addEventListener("click", () => setOn(true));
     $("[data-sound-no]").addEventListener("click", () => setOn(false));
     document.addEventListener("visibilitychange", () => { if (!ctx || !on) return; document.hidden ? ctx.suspend() : ctx.resume(); });   // quiet in a background tab
-    return { sync: i => { want = want0(i); play(want); }, ask: () => { if (!on) ask.classList.add("is-on"); } };
+    return { sync: i => { want = want0(i); play(want); setSour(!!STOPS[i].off); }, ask: () => { if (!on) ask.classList.add("is-on"); } };
   })();
   function setPaused(v) {   // only the screenshot scripts pause a sequence (__story.pause)
     paused = v;
