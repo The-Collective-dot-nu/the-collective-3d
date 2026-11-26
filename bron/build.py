@@ -88,6 +88,12 @@ else:
     if test:   # vast toeval (mulberry32), zodat korrel, graan en gezichten bij elke lading gelijk zijn
         a = '(() => {\n  "use strict";\n'; assert s.count(a) == 1
         s = s.replace(a, a + '  Math.random = (() => { let a = 1; return () => { a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; })();\n')
+    for src in sorted(glob.glob(os.path.join(ASSETS, "audio", "*.mp3"))):   # music: copied to site/audio/, linked with a hash; loaded only after "Sound on"
+        name = os.path.basename(src); b = open(src, "rb").read(); os.makedirs(os.path.join(out_dir, "audio"), exist_ok=True); shutil.copyfile(src, os.path.join(out_dir, "audio", name))
+        s = s.replace("__AUDIO:" + name + "__", "site/audio/" + name + "?v=" + hashlib.md5(b).hexdigest()[:8])
+    bp = os.path.join(out_dir, "backstage.json")   # the Backstage pass texts, encrypted (bron/backstage/encrypt.py writes it)
+    if os.path.exists(bp): s = s.replace("__BACKSTAGE__", "site/backstage.json?v=" + hashlib.md5(open(bp, "rb").read()).hexdigest()[:8])
+    assert "__AUDIO:" not in s and "__BACKSTAGE__" not in s
     out = os.path.join(REPO, "test.html" if test else "index.html")
     css = r(S, "styles.css"); open(os.path.join(out_dir, "styles.css"), "w", encoding="utf-8").write(css)   # index.html linkt naar site/styles.css
     link = '<link rel="stylesheet" href="site/styles.css">'; assert link in s

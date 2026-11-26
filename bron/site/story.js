@@ -73,7 +73,7 @@
   const CAM2 = NARROW ? frame(orchBox, V(0, 0.62, 1), 40, 0.84) : K([0, 3.2, 25], [0, 2.4, -4], 38);   // the closer view of frame 2, reused by Blueprint, Means and the dimensions; phones look down a little more, so the orchestra fills the width instead of a thin strip
   const oneByOne = (t, s, t0 = 0.6, step = 0.8) => { const i = Math.floor((s - t0) / step); return t.env || t.conductor || i < 0 || i > 3 || t.section === SECT[i] || (i === 0 && (t.section === "Harp" || t.section === "Piano")); };   // the whole orchestra first, then section by section (harp and piano with the strings), then all again: never the conductor alone
   const condStandBox = box(lessen.getObjectByName("Dirigent (partituur)"));
-  const FW_STEP = 0.6;   // the framework builds up one part every 0.6 s (frame 3)
+  const FW_STEP = 1.25;   // the framework builds up one part every FW_STEP s (frame 3): each part first big with its name in the middle, then it flies to its place (Kai, option C)
   const LINE_HOLD = 2.4, TW_DUR = 0.3;   // "It isn't": one line per step and one thing happening with it, each held LINE_HOLD seconds (Kai: calmer, one thing per sentence)
   const SECTION_STEP = 0.8;   // "Different roles": a section every SECTION_STEP seconds (oneByOne)
   const STOPS = [
@@ -281,8 +281,11 @@
     if (!S.coll) meetFrom = null;   // leaving the About page in any way forgets where the button was pressed
     collEl.classList.toggle("is-on", !!S.coll); collEl.classList.toggle("is-overlay", !!S.coll && meetFrom !== null);   // opened with the button: a page over the story, with a cross
     meetBtn.classList.toggle("is-hidden", !!S.coll);
-    fwEl.querySelectorAll(".k").forEach(g => { const k = g.dataset.k;
-      g.style.opacity = (S.show || "").includes(k) ? 1 : 0; if (k === "o") drawArc(!!S.fw && (S.show || "").includes("o"), S.fw === "big"); });
+    const fresh = S.fw === "big" && !reduceMQ.matches ? [...(S.show || "")].filter(k => !fwShown.has(k)) : [];
+    flyClear(); fwShown = new Set(S.fw ? S.show || "" : "");
+    fwEl.querySelectorAll(".k").forEach(g => { const k = g.dataset.k, on = (S.show || "").includes(k);
+      if (on && fresh.length === 1 && fresh[0] === k) { g.style.opacity = 0; if (k === "o") drawArc(false); flyIn(g, () => { g.style.opacity = 1; if (k === "o") drawArc(true, true); }); return; }   // one new part: its name first, big
+      g.style.opacity = on ? 1 : 0; if (k === "o") drawArc(!!S.fw && on, S.fw === "big"); });
     shade.style.opacity = S.shade || 0; fore.classList.toggle("is-on", !!S.fore);
     const n = segOf(at), lastSeg = n === SEGS.length - 1;
     segBtns.forEach((b, k) => { b.setAttribute("aria-current", k === n ? "step" : "false"); b.tabIndex = k === n ? 0 : -1; segFills[k].style.transform = `scaleX(${k < n ? 1 : 0})`; });
@@ -292,16 +295,21 @@
     tlSkip.setAttribute("aria-disabled", lastSeg); tlPrev.setAttribute("aria-disabled", n === 0 && at === 0);   // Next everywhere but the last part, Previous everywhere but the opening
     tlPlay.setAttribute("aria-disabled", !S.seq);   // pause only means something in a part that plays by itself
     if (n !== curSeg) { curSeg = n; wake(3200); }   // every new part shows the bar for a moment
-    panelSteps(S);
+    panelSteps(S); setCompass(S); music.sync(STOPS.indexOf(S));
   }
   /* ---------- the story panels: a small framework on top (where we are), and in a part that plays by itself one more text per step, with a bar per step ---------- */
   const PANEL_PART = { plan: "p", blueprint: "b", means: "m", orchestration: "o", dims: "rc" }, PART_ORDER = ["plan", "blueprint", "means", "orchestration", "dims"];
+  // the compass (Kai, option A): the framework small, top right, while a part is told; the current part bright, the parts seen half lit
+  const compass = document.createElement("div"); compass.className = "compass"; compass.setAttribute("aria-hidden", "true");
+  { const fig = fwEl.innerHTML.replace(/<defs>[\s\S]*?<\/defs>/, "").replace(/<text[\s\S]*?<\/text>/g, "").replace(/ marker-end="[^"]*"/, "").replace(/ pathLength="1"/, ""), end = fig.lastIndexOf("</g>");   // the same figure without its words; the arrow's head drawn fixed
+    compass.innerHTML = `<svg viewBox="0 0 640 560">${fig.slice(0, end)}<path class="tip" d="M-9 -8L9 0L-9 8z" transform="translate(274.7 38.6) rotate(-11)"/>${fig.slice(end)}</svg><p class="compass__label"><b></b> <span></span></p>`; }
+  $(".panels").after(compass);
+  const PART_NAME = { plan: "Plan", blueprint: "Blueprint", means: "Means", orchestration: "Orchestration", dims: "Run and Change" };
+  function setCompass(S) {
+    const here = S.panel ? PART_ORDER.indexOf(S.panel) : -1; compass.classList.toggle("is-on", here >= 0); if (here < 0) return;
+    compass.querySelectorAll(".k").forEach(g => { const pos = PART_ORDER.findIndex(p => PANEL_PART[p].includes(g.dataset.k)); g.setAttribute("class", "k " + (pos === here ? "is-now" : pos < here ? "is-seen" : "is-later")); });
+    compass.querySelector("b").textContent = PART_NAME[S.panel].toUpperCase(); compass.querySelector("span").textContent = `${here + 1} / ${PART_ORDER.length}`; }
   for (const k in panels) { const P = panels[k];
-    if (PANEL_PART[k]) { const m = document.createElementNS("http://www.w3.org/2000/svg", "svg"); m.setAttribute("class", "panel__fw"); m.setAttribute("viewBox", "0 0 640 560"); m.setAttribute("aria-hidden", "true");
-      m.innerHTML = fwEl.innerHTML.replace(/<defs>[\s\S]*?<\/defs>/, "").replace(/<text[\s\S]*?<\/text>/g, "").replace(/ marker-end="[^"]*"/, "").replace(/ pathLength="1"/, "");   // the same figure, without its words: shapes only
-      const here = PART_ORDER.indexOf(k);
-      m.querySelectorAll(".k").forEach(g => { const pos = PART_ORDER.findIndex(p => PANEL_PART[p].includes(g.dataset.k)); g.classList.add(pos === here ? "is-now" : pos < here ? "is-seen" : "is-later"); });
-      P.prepend(m); }
     const more = document.createElement("div"); more.className = "panel__more"; more.dataset.panelMore = "";
     const steps = document.createElement("div"); steps.className = "panel__steps"; steps.dataset.panelSteps = "";
     const org = P.querySelector(".panel__org"); org ? org.before(more) : P.append(more); P.append(steps); }
@@ -319,6 +327,63 @@
         requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add("is-in"))); }   // the newest text comes last, after the camera and the caption
       else if (j > at && el) el.remove(); }
   }
+  /* ---------- framework build-up: a new part's name appears big in the middle of the figure, then shrinks into its place and the part appears ---------- */
+  let fwShown = new Set(), flyTimers = [];
+  const FLY_NAME = { p: ["Plan", "the piece"], b: ["Blueprint", "the score"], m: ["Means", "the orchestra"], o: ["Orchestration", "the conductor"], r: ["Run", "tonight's concert"], c: ["Change", "next season's symphony"] };
+  function flyClear() { flyTimers.forEach(clearTimeout); flyTimers = []; fwEl.querySelectorAll(".fly").forEach(f => f.remove()); }
+  function flyIn(g, done) {
+    const [name, sub] = FLY_NAME[g.dataset.k], f = document.createElementNS("http://www.w3.org/2000/svg", "g"); f.setAttribute("class", "fly");
+    f.innerHTML = `<text class="fly__name" x="320" y="262" text-anchor="middle">${name}</text><text class="fly__sub" x="320" y="300" text-anchor="middle">${sub}</text>`;
+    fwEl.appendChild(f);
+    const lab = g.querySelector(".lab"), t = lab.getBBox(), c = f.getBBox(), k = t.height / (c.height * 0.55);   // land on the part's own label
+    const dx = t.x + t.width / 2 - 320, dy = t.y + t.height / 2 - 270;
+    requestAnimationFrame(() => f.classList.add("is-in"));
+    flyTimers.push(setTimeout(() => { f.style.transform = `translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px) scale(${k.toFixed(3)})`; f.classList.add("is-out"); }, 520),
+      setTimeout(done, 760), setTimeout(() => f.remove(), 1300));
+  }
+  /* ---------- music: asked once the site is ready; The Show Must Go On under the story, a scratch into The Next Episode when the view goes to Change ---------- */
+  // Files: bron/assets/audio/*.mp3 (royalty-free versions, Kai), copied by build.py to site/audio/ and fetched only after "Yes".
+  var music = (() => {
+    const TRACKS = { show: { url: "__AUDIO:show-must-go-on.mp3__", vol: 0.55 }, next: { url: "__AUDIO:next-episode.mp3__", vol: 0.6 } };
+    const CHANGE_AT = STOPS.findIndex(s => s.id === "d2");   // the camera goes to the rehearsal: Change
+    const btn = $("[data-sound]"), ask = $("[data-sound-ask]");
+    let ctx = null, on = false, cur = null, want = "show", scratchBuf = null;
+    const want0 = i => i >= CHANGE_AT ? "next" : "show";
+    function setup() {
+      ctx = new (window.AudioContext || window.webkitAudioContext)();
+      for (const k in TRACKS) { const T = TRACKS[k], a = new Audio(); a.src = T.url; a.loop = true; a.preload = "auto"; a.crossOrigin = "anonymous";
+        T.el = a; T.gain = ctx.createGain(); T.gain.gain.value = 0; ctx.createMediaElementSource(a).connect(T.gain).connect(ctx.destination); }
+      fetch(TRACKS.next.url).then(r => r.arrayBuffer()).then(b => ctx.decodeAudioData(b)).then(buf => { scratchBuf = buf; }).catch(() => {});   // the scratch is cut from the start of the new song
+    }
+    const fade = (k, to, sec) => { const g = TRACKS[k].gain.gain, t = ctx.currentTime; g.cancelScheduledValues(t); g.setValueAtTime(g.value, t); g.linearRampToValueAtTime(to, t + sec); };
+    function scratch() {   // forward, back, forward, back: short pieces of the record at changing speed, through a narrow band like a needle on vinyl
+      if (!scratchBuf) return 0;
+      const len = Math.floor(0.22 * scratchBuf.sampleRate), rev = ctx.createBuffer(scratchBuf.numberOfChannels, len, scratchBuf.sampleRate), fwd = ctx.createBuffer(scratchBuf.numberOfChannels, len, scratchBuf.sampleRate);
+      for (let c = 0; c < scratchBuf.numberOfChannels; c++) { const src = scratchBuf.getChannelData(c).subarray(0, len); fwd.copyToChannel(src, c); const r = new Float32Array(len); for (let i = 0; i < len; i++) r[i] = src[len - 1 - i]; rev.copyToChannel(r, c); }
+      const bp = ctx.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 1400; bp.Q.value = 0.8; const g = ctx.createGain(); g.gain.value = 0.9; bp.connect(g).connect(ctx.destination);
+      let t = ctx.currentTime + 0.02; const PARTS = [[fwd, 1.8, 0.11], [rev, 2.4, 0.08], [fwd, 2.0, 0.1], [rev, 2.6, 0.07], [fwd, 1.4, 0.12]];
+      for (const [b, rate, d] of PARTS) { const s = ctx.createBufferSource(); s.buffer = b; s.playbackRate.setValueAtTime(rate * 0.6, t); s.playbackRate.linearRampToValueAtTime(rate, t + d * 0.5); s.playbackRate.linearRampToValueAtTime(rate * 0.4, t + d);
+        s.connect(bp); s.start(t); s.stop(t + d); t += d + 0.015; }
+      return t - ctx.currentTime;
+    }
+    function play(k) {
+      if (!on || k === cur) return;
+      const from = cur; cur = k; let delay = 0;
+      if (from) { fade(from, 0, from === "show" && k === "next" ? 0.15 : 1.0); const el = TRACKS[from].el; setTimeout(() => { if (cur !== from) el.pause(); }, 1200); }
+      if (from === "show" && k === "next") { delay = scratch(); TRACKS.next.el.currentTime = 0; }   // the DJ moment
+      setTimeout(() => { if (cur !== k || !on) return; TRACKS[k].el.play().catch(() => {}); fade(k, TRACKS[k].vol, from ? (delay ? 0.05 : 1.0) : 2.0); }, delay * 1000);
+    }
+    function setOn(v) {
+      on = v; btn.setAttribute("aria-pressed", v); btn.setAttribute("aria-label", v ? "Sound off" : "Sound on"); btn.classList.toggle("is-on", v); ask.classList.remove("is-on");
+      if (v) { if (!ctx) setup(); ctx.resume(); cur = null; play(want); }
+      else if (ctx) { for (const k in TRACKS) { fade(k, 0, 0.4); const el = TRACKS[k].el; setTimeout(() => { if (!on) el.pause(); }, 450); } cur = null; }
+    }
+    btn.addEventListener("click", () => setOn(!on));
+    $("[data-sound-yes]").addEventListener("click", () => setOn(true));
+    $("[data-sound-no]").addEventListener("click", () => setOn(false));
+    document.addEventListener("visibilitychange", () => { if (!ctx || !on) return; document.hidden ? ctx.suspend() : ctx.resume(); });   // quiet in a background tab
+    return { sync: i => { want = want0(i); play(want); }, ask: () => { if (!on) ask.classList.add("is-on"); } };
+  })();
   function setPaused(v) {   // only the screenshot scripts pause a sequence (__story.pause)
     paused = v;
     if (!v) arrived = clock.getElapsedTime() - (STOPS[at].hold || 0) * 0.5;   // resume: a short wait, then on
@@ -387,10 +452,37 @@
   const section = (label, html) => `<h3 class="drawer__h">${esc(label)}</h3>${html}`;
   function problemHTML(n) { const P = PROBLEMS[n];   // the title is the recognition; the figure beside it lights the parts and opens them
     return `<h2 class="drawer__title">${esc(P.line)}</h2>`
-      + section(LABELS.wrong, `<p class="drawer__text">${esc(P.wrong)}</p>`) + section(LABELS.solve, `<p class="drawer__text">${esc(P.solve)}</p>`); }
+      + section(LABELS.wrong, `<p class="drawer__text">${esc(P.wrong)}</p>`) + section(LABELS.solve, `<p class="drawer__text">${esc(P.solve)}</p>`) + backstageHTML(P.id); }
   function partHTML(k) { const T = PARTS[k];   // the problems it helps solve light up in the list on the left, not here (Kai: they stood there twice)
     return `<p class="drawer__kicker">${esc(T.name)} · ${esc(T.sub)}</p><h2 class="drawer__title">${esc(T.title)}</h2><p class="drawer__question">${esc(T.question)}</p><p class="drawer__text">${esc(T.text)}</p>`
-      + section(LABELS.org, `<p class="drawer__text">${esc(T.org)}</p>`); }
+      + section(LABELS.org, `<p class="drawer__text">${esc(T.org)}</p>`) + backstageHTML(k); }
+  /* ---------- Backstage pass: a teaser, then the full text after the password (decrypted here; the texts are encrypted in site/backstage.json) ---------- */
+  const bs = { file: null, key: null };
+  const b64 = t => Uint8Array.from(atob(t), c => c.charCodeAt(0));
+  const backstageHTML = id => `<div class="backstage" data-backstage="${esc(id)}"><button class="backstage__open" type="button" aria-expanded="false">${esc(BACKSTAGE.label)}<span aria-hidden="true">&rarr;</span></button>
+    <div class="backstage__body" hidden><p class="drawer__text">${esc(BACKSTAGE.teaser)}</p>
+    <form class="backstage__form"><input type="password" autocomplete="off" placeholder="${esc(BACKSTAGE.prompt)}" aria-label="${esc(BACKSTAGE.prompt)}"><button type="submit">${esc(BACKSTAGE.unlock)}</button></form>
+    <p class="backstage__msg" aria-live="polite"></p></div></div>`;
+  async function bsKey(pw) {
+    if (!(window.crypto && crypto.subtle)) throw new Error("nocrypto");
+    const f = bs.file || (bs.file = await (await fetch(BACKSTAGE.url)).json());
+    const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(pw), "PBKDF2", false, ["deriveKey"]);
+    const key = await crypto.subtle.deriveKey({ name: "PBKDF2", salt: b64(f.salt), iterations: f.iter, hash: "SHA-256" }, base, { name: "AES-GCM", length: 256 }, false, ["decrypt"]);
+    await bsOpen(key, f.check); return key;   // throws on a wrong password
+  }
+  const bsOpen = async (key, box) => JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64(box.iv) }, key, b64(box.data))));
+  async function bsReveal(el) {
+    const box = bs.file.items[el.dataset.backstage], body = el.querySelector(".backstage__body");
+    if (!box) { body.querySelector(".backstage__msg").textContent = ""; return; }
+    const T = await bsOpen(bs.key, box);
+    body.innerHTML = `<h3 class="drawer__h">${esc(T.title)}</h3>` + T.paras.map(t => `<p class="drawer__text">${esc(t)}</p>`).join(""); el.classList.add("is-open");
+  }
+  document.addEventListener("click", e => { const b = e.target.closest && e.target.closest(".backstage__open"); if (!b) return;
+    const el = b.closest(".backstage"), body = el.querySelector(".backstage__body"), open = body.hidden; body.hidden = !open; b.setAttribute("aria-expanded", open);
+    if (open && bs.key) bsReveal(el); else if (open) { const i = body.querySelector("input"); i && i.focus({ preventScroll: true }); } });
+  document.addEventListener("submit", async e => { const form = e.target.closest && e.target.closest(".backstage__form"); if (!form) return; e.preventDefault();
+    const el = form.closest(".backstage"), msg = el.querySelector(".backstage__msg"), pw = form.querySelector("input").value;
+    try { bs.key = await bsKey(pw); await bsReveal(el); } catch (err) { msg.textContent = err.message === "nocrypto" ? BACKSTAGE.nocrypto : BACKSTAGE.wrong; form.querySelector("input").select(); } });   // the key stays for this visit only
   function showDrawer(kind, html) {
     const d = drawers[kind], other = drawers[kind === "problem" ? "part" : "problem"];
     if (!drawerFrom || !drawerFrom.isConnected) drawerFrom = document.activeElement;
@@ -668,7 +760,7 @@
       if (ready && shown > 0.995) {
         if (!doneAt) doneAt = performance.now();
         if (performance.now() - doneAt > 250) {
-          loader.classList.add("is-done"); document.body.classList.remove("is-loading"); document.body.classList.add("is-ready");
+          loader.classList.add("is-done"); document.body.classList.remove("is-loading"); document.body.classList.add("is-ready"); setTimeout(music.ask, 1800);   // then: sound on?
           // no replay of the opening text: it already sits exactly under the loader text, so the hand-over is seamless
           return;
         }

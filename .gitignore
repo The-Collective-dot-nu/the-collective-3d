@@ -159,3 +159,4 @@ bron/test/ref/
 bron/bake/.bin/
 bron/bake/bake.html
 bron/test/package-lock.json
+bron/backstage/content.json

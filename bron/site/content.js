@@ -72,6 +72,11 @@
       org: "Change: build what comes next, with multidisciplinary teams around a value stream and the means to deliver it end to end." },
   };
 
+  // BACKSTAGE: the "learn more" behind a password, in every problem and framework-part panel. The teaser is public; the full texts are
+  // encrypted in site/backstage.json (bron/backstage/encrypt.py; the readable texts never go in the repo)
+  const BACKSTAGE = { label: "Backstage pass", teaser: "Lorem ipsum dolor sit amet: behind the curtain, how we would tackle this with you, step by step. Sed posuere consectetur est at lobortis.",
+    prompt: "Password", unlock: "Let me in", wrong: "That is not the pass. Try again.", nocrypto: "The backstage pass only works on the secure (https) address.", url: "__BACKSTAGE__" };
+
   const LABELS = {   // headings inside the side panels
     wrong: "Where it goes wrong", solve: "How the framework solves it",
     org: "In your organisation", problems: "Problems it helps solve",
