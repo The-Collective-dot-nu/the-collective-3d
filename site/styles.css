@@ -351,14 +351,15 @@ p, ul, h1, h2 { margin: 0; }
 .prob.is-lit .prob__line { color: var(--color-highlight); }
 
 /* ---- the compass in the story panels (Kai): the framework small on top of the card, no words; fine lines, the current part cream, the parts seen half lit ---- */
-.compass { width: 104px; margin: 0 0 14px; pointer-events: none; }   /* on top of each story panel, before the kicker */
+.compass { float: right; width: 92px; margin: -6px -6px 8px 16px; pointer-events: none; }   /* top right in each story panel; the kicker and title run beside it (Kai) */
+.panel:has(.compass)::after { content: ""; display: block; clear: both; }
 .compass svg { display: block; width: 100%; height: auto; overflow: visible; }
 .compass .ring, .compass .part, .compass .arc { fill: none; stroke: rgb(var(--rgb-paper) / .3); stroke-width: 1; vector-effect: non-scaling-stroke; transition: stroke .6s ease, fill .6s ease; }
 .compass .tip { fill: rgb(var(--rgb-paper) / .3); transition: fill .6s ease; }
 .compass .is-seen .part, .compass .is-seen .arc { stroke: rgb(var(--rgb-paper) / .6); } .compass .is-seen .part { fill: rgb(var(--rgb-paper) / .06); } .compass .is-seen .tip { fill: rgb(var(--rgb-paper) / .6); }
 .compass .is-now .part { fill: rgb(252 232 216 / .22); stroke: var(--color-highlight); stroke-width: 1.6; }
 .compass .is-now .arc { stroke: var(--color-highlight); stroke-width: 2; } .compass .is-now .tip { fill: var(--color-highlight); }
-@media (max-width: 720px) { .compass { width: 64px; margin-bottom: 10px; } }
+@media (max-width: 720px) { .compass { width: 60px; margin: -4px -4px 6px 12px; } }
 
 /* framework build-up (Kai, option C): the new part's name big in the middle, then it shrinks into its place */
 .fw .fly { transform-origin: 320px 270px; opacity: 0; transform: scale(.94); transition: opacity .35s ease, transform .35s var(--ease-out); pointer-events: none; }
