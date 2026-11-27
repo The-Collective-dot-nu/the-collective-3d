@@ -217,6 +217,7 @@ p, ul, h1, h2 { margin: 0; }
 .fw .tip { fill: var(--color-text); }
 .fw .sub { font-size: 17px; font-style: italic; opacity: .78; }
 .fw .lab.lab--big { font-size: 16px; }
+.fw .sub.sub--foot { font-size: 12px; }   /* Run and Change: the sub under the column */
 .fw .k, .fw .ring { transition: opacity .45s ease, filter .45s ease; }
 .fw.is-flying > .k, .fw.is-flying > .ring { filter: blur(4px) opacity(.35); }   /* the big name reads on a calm ground; sharp again as it flies to its place */
 .fw text { font-family: var(--font-serif); fill: var(--color-text); }
