@@ -338,21 +338,21 @@
     flyTimers.push(setTimeout(() => { f.style.transform = `translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px) scale(${k.toFixed(3)})`; f.classList.add("is-out"); fwEl.classList.remove("is-flying"); }, 1250),
       setTimeout(done, 1490), setTimeout(() => f.remove(), 2050));   // the name stays big about 1.2 s (Kai: it went too fast)
   }
-  /* ---------- music: asked once the site is ready; The Show Must Go On under the story, a scratch into The Next Episode when the view goes to Change ---------- */
+  /* ---------- music: asked once the site is ready; The Show Goes On under the story, a scratch into The Next Episode when the view goes to Change ---------- */
   // Files: bron/assets/audio/*.mp3 (royalty-free versions, Kai), copied by build.py to site/audio/ and fetched only after "Yes".
   var music = (() => {
-    const TRACKS = { show: { url: "__AUDIO:show-must-go-on.mp3__", vol: 0.55 }, next: { url: "__AUDIO:next-episode.mp3__", vol: 0.6 } };
+    const TRACKS = { show: { url: "__AUDIO:show-goes-on.mp3__", vol: 0.35 }, next: { url: "__AUDIO:next-episode.mp3__", vol: 0.6 } };
     const CHANGE_AT = STOPS.findIndex(s => s.id === "d2");   // the camera goes to the rehearsal: Change
     const btn = $("[data-sound]"), ask = $("[data-sound-ask]");
     let ctx = null, on = false, cur = null, want = "show", scratchBuf = null;
-    const SHOW_END = 251.1, NEXT_IN = 0.34;   // seconds: where The Show Must Go On falls silent, where The Next Episode starts to sound
+    const SHOW_END = 230.4, NEXT_IN = 0.34;   // seconds: the end of The Show Goes On (orchestral, fades out; Kai 27 Nov), where The Next Episode starts to sound
     let nextSrc = null;   // The Next Episode loops from its decoded buffer: gapless, without the silence at its start
     const want0 = i => i >= CHANGE_AT ? "next" : "show";
     function setup() {
       ctx = new (window.AudioContext || window.webkitAudioContext)();
       for (const k in TRACKS) { const T = TRACKS[k], a = new Audio(); a.src = T.url; a.loop = true; a.preload = "auto"; a.crossOrigin = "anonymous";
         T.el = a; T.gain = ctx.createGain(); T.gain.gain.value = 0; ctx.createMediaElementSource(a).connect(T.gain).connect(fx ? fx.bus : fxIn()); }
-      TRACKS.show.el.addEventListener("timeupdate", () => { const e = TRACKS.show.el; if (e.currentTime > SHOW_END) e.currentTime = 0; });   // the file ends in 3 s of silence: loop before it
+      TRACKS.show.el.addEventListener("timeupdate", () => { const e = TRACKS.show.el; if (e.currentTime > SHOW_END) e.currentTime = 0; });   // loop just before the very end
       fetch(TRACKS.next.url).then(r => r.arrayBuffer()).then(b => ctx.decodeAudioData(b)).then(buf => { scratchBuf = buf; }).catch(() => {});   // the scratch is cut from the start of the new song
     }
     const fade = (k, to, sec) => { const g = TRACKS[k].gain.gain, t = ctx.currentTime; g.cancelScheduledValues(t); g.setValueAtTime(g.value, t); g.linearRampToValueAtTime(to, t + sec); };

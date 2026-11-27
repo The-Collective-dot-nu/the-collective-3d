@@ -226,6 +226,6 @@ We are The Collective. Your organisation is full of talent, and somehow it still
 - [ ] Definitief e-mailadres en waar de knop "Let's talk" heen gaat.
 - [ ] De 8 probleemkaarten in frame 10: titels en teksten zijn nog tijdelijk.
 - [ ] Route 1 en 2 na frame 10: staan in de wacht.
-- [ ] Tekst op het programmabord in frame 4: bovenaan klein "Tonight's Symphony", als grote tekst "The Show Must Go On". Kiezen welke de grote tekst wordt.
+- [ ] Tekst op het programmabord in frame 4: bovenaan klein "Tonight's Symphony", als grote tekst "The Show Goes On". Kiezen welke de grote tekst wordt.
 - [ ] Framework-figuur B2: Kai wilde hier later nog op terugkomen.
 - [ ] Telefoon: de lijst met problemen in frame 10 loopt over het podium, en de sectienamen bij Means overlappen.
