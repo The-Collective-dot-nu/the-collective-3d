@@ -2174,12 +2174,12 @@
       const id = setInterval(() => { const k = Math.min(1, (performance.now() - t0) / 550); el.playbackRate = Math.max(0.25, 1 - 0.75 * k * k); if (k >= 1) { clearInterval(id); setTimeout(() => { el.playbackRate = 1; }, 700); } }, 30);
     }
     // ---- sound design (Kai): one filter chain on the mix that follows the story; with one mixed recording it suggests sections by pitch range and left/right, wherever the song is
-    let fx = null, fxTimers = [], lastI = -1;
+    let fx = null, fxTimers = [], lastI = -1, lastSec = -2;
     function fxIn() {
       const c = ctx, n = { bus: c.createGain(), split: c.createChannelSplitter(2), dl: c.createDelay(0.1), dr: c.createDelay(0.1), gl: c.createGain(), gr: c.createGain(), merge: c.createChannelMerger(2),
         hp: c.createBiquadFilter(), lp: c.createBiquadFilter(), peak: c.createBiquadFilter(), shelf: c.createBiquadFilter(), out: c.createGain(), lfo: c.createOscillator(), wob: c.createGain(), inv: c.createGain() };
       n.hp.type = "highpass"; n.hp.frequency.value = 20; n.lp.type = "lowpass"; n.lp.frequency.value = 20000; n.peak.type = "peaking"; n.peak.Q.value = 0.9; n.peak.gain.value = 0; n.shelf.type = "highshelf"; n.shelf.frequency.value = 3500; n.shelf.gain.value = 0;
-      n.dl.delayTime.value = 0; n.dr.delayTime.value = 0; n.lfo.frequency.value = 0.3; n.wob.gain.value = 0; n.inv.gain.value = -1;
+      n.dl.delayTime.value = 0; n.dr.delayTime.value = 0; n.lfo.frequency.value = 0.6; n.wob.gain.value = 0; n.inv.gain.value = -1;
       n.bus.connect(n.split); n.split.connect(n.dl, 0); n.split.connect(n.dr, 1); n.dl.connect(n.gl).connect(n.merge, 0, 0); n.dr.connect(n.gr).connect(n.merge, 0, 1);
       n.merge.connect(n.hp).connect(n.lp).connect(n.peak).connect(n.shelf).connect(n.out).connect(c.destination);
       n.lfo.connect(n.wob); n.wob.connect(n.dl.delayTime); n.wob.connect(n.inv).connect(n.dr.delayTime); n.lfo.start();
@@ -2190,20 +2190,20 @@
       [[fx.hp.frequency, P.hp], [fx.lp.frequency, P.lp], [fx.peak.frequency, P.pf], [fx.peak.gain, P.pg], [fx.shelf.gain, P.sg], [fx.gl.gain, P.l], [fx.gr.gain, P.r], [fx.dl.delayTime, P.dl], [fx.dr.delayTime, P.dr], [fx.wob.gain, P.wob], [fx.out.gain, P.out]]
         .forEach(([a, v]) => { a.cancelScheduledValues(t); a.setTargetAtTime(v, t, tau); });
     }
-    const SECTION_SOUND = { Strijkers: { hp: 220, lp: 6000, pf: 1200, pg: 4, r: 0.5 }, Houtblazers: { hp: 450, lp: 8000, pf: 2200, pg: 5, l: 0.8, r: 0.8 }, Koper: { hp: 120, lp: 2600, pf: 650, pg: 5, l: 0.5 }, Slagwerk: { lp: 450, pf: 90, pg: 6 } };
+    const SECTION_SOUND = { Strijkers: { hp: 300, lp: 4500, pf: 900, pg: 9, r: 0.12 }, Houtblazers: { hp: 700, lp: 9000, pf: 2500, pg: 9, l: 0.7, r: 0.7, out: 1.1 }, Koper: { hp: 150, lp: 1800, pf: 500, pg: 9, l: 0.12 }, Slagwerk: { lp: 260, pf: 70, pg: 10, out: 1.35 } };   // strong on purpose: on a full mix, mild filters are not heard (Kai)
     function fxFor(i) {   // what the music does at each stop
-      fxTimers.forEach(clearTimeout); fxTimers = []; lastI = i; if (!fx) return;
+      fxTimers.forEach(clearTimeout); fxTimers = []; lastI = i; lastSec = -2; if (!fx) return;
       const S = STOPS[i], later = (ms, p, tau) => fxTimers.push(setTimeout(() => shape(p, tau), ms));
       switch (S.id) {
-        case "open": shape({ lp: 450 }, 0.05); later(1500, {}, 1.2); break;   // from far away, then the orchestra opens up
-        case "t2": shape({}); SECT.forEach((k, n) => later(((S.dur || 0) + 0.3 + n * SECTION_STEP) * 1000, SECTION_SOUND[k], 0.15)); later(((S.dur || 0) + 0.3 + 4 * SECTION_STEP) * 1000, {}, 0.3); break;   // Different roles: the sound follows the section that lights up
-        case "t3": shape({ sg: 6, pf: 350, pg: 2.5 }, 0.6); break;   // Different capabilities: warmer and brighter, like the glow
-        case "t4": shape({ sg: 4, pf: 350, pg: 2, dl: 0.016, dr: 0.006, wob: 0.005 }, 0.5); break;   // Different perspectives: each ear hears it differently
-        case "t6": shape({ out: 1.25 }, 0.25); later(900, {}, 1.0); break;   // One performance: everything back in place, with a swell
-        case "b3": shape({ r: 0.35, pf: 1500, pg: 3 }, 0.5); break;   // one melody line: left
-        case "b4": shape({ l: 0.35, pf: 1500, pg: 3 }, 0.5); later(2200, { pf: 1500, pg: 2 }, 0.8); break;   // the second line right, then both
-        case "question": shape({ lp: 2200, out: 0.9 }, 0.8); break;   // in the hall, among the audience
-        case "problems": shape({ lp: 3800, out: 0.75 }, 0.8); break;
+        case "open": shape({ lp: 300, out: 0.8 }, 0.05); later(1500, {}, 1.0); break;   // from far away, then the orchestra opens up
+        case "t2": shape({}); break;   // Different roles: the sound follows the section that lights up (tick, on the same clock as the light)
+        case "t3": shape({ sg: 10, pf: 300, pg: 5 }, 0.4); break;   // Different capabilities: warmer and brighter, like the glow
+        case "t4": shape({ sg: 6, pf: 300, pg: 3, dl: 0.03, dr: 0.004, wob: 0.009 }, 0.4); break;   // Different perspectives: each ear hears it differently
+        case "t6": shape({ out: 1.45 }, 0.2); later(1000, {}, 1.0); break;   // One performance: everything back in place, with a swell
+        case "b3": shape({ r: 0.08, pf: 1500, pg: 5 }, 0.4); break;   // one melody line: left
+        case "b4": shape({ l: 0.08, pf: 1500, pg: 5 }, 0.4); later(2200, { pf: 1500, pg: 3 }, 0.8); break;   // the second line right, then both
+        case "question": shape({ lp: 1200, out: 0.85 }, 0.6); break;   // in the hall, among the audience
+        case "problems": shape({ lp: 2500, out: 0.7 }, 0.6); break;
         default: shape({}, 0.6);
       }
     }
@@ -2223,7 +2223,7 @@
     $("[data-sound-yes]").addEventListener("click", () => setOn(true));
     $("[data-sound-no]").addEventListener("click", () => setOn(false));
     document.addEventListener("visibilitychange", () => { if (!ctx || !on) return; document.hidden ? ctx.suspend() : ctx.resume(); });   // quiet in a background tab
-    return { sync: i => { want = want0(i); play(want); setSour(!!STOPS[i].off); lastI = i; if (on) fxFor(i); }, ask: () => { if (!on) ask.classList.add("is-on"); } };
+    return { tick: (S, since, moving) => { if (!fx || !on || S.id !== "t2") return; let n = moving ? -1 : Math.floor((since - 0.3) / SECTION_STEP); if (n > 3) n = 4; if (n === lastSec) return; lastSec = n; shape(n >= 0 && n < 4 ? SECTION_SOUND[SECT[n]] : {}, 0.08); }, probe: () => fx && { lp: Math.round(fx.lp.frequency.value), pg: +fx.peak.gain.value.toFixed(1), l: +fx.gl.gain.value.toFixed(2), r: +fx.gr.gain.value.toFixed(2), out: +fx.out.gain.value.toFixed(2), state: ctx.state }, sync: i => { want = want0(i); play(want); setSour(!!STOPS[i].off); lastI = i; if (on) fxFor(i); }, ask: () => { if (!on) ask.classList.add("is-on"); } };
   })();
   function setPaused(v) {   // only the screenshot scripts pause a sequence (__story.pause)
     paused = v;
@@ -2600,6 +2600,7 @@
     }
     camera.lookAt(camTarget); camera.updateProjectionMatrix();
     const S = STOPS[at], F = STOPS[from], since = anim ? 0 : now - arrived, fSince = anim ? fromSince : since, mix = anim ? kk : 1;
+    music.tick(S, since, !!anim);
     if (waitGo && (window.__audience || now - waitGo.since >= AUDIENCE_WAIT)) goTo(waitGo.i, waitGo.instant);   // the audience is in (or will not come): go now
     // auto-advance inside a sequence
     const Q = S.seq && SEQS[S.seq];
@@ -2677,7 +2678,7 @@
     tick();
   }
   // tuning hook: __story.go(i) jumps to a stop, __story.stops lists them
-  window.__story = { go: i => goTo(typeof i === "string" ? idx(i) : i, true), stops: STOPS, pause: setPaused, hold: setHeld };   // hold: the visitor's pause button
+  window.__story = { go: i => goTo(typeof i === "string" ? idx(i) : i, true), stops: STOPS, pause: setPaused, hold: setHeld, sound: () => music.probe() };   // hold: the visitor's pause button
   window.__scene = { root, camera, view: (pos, target) => { anim = null; camera.position.copy(pos); camTarget.copy(target); } };
 })();
 </script>
