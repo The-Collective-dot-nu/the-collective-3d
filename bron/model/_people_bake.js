@@ -30,7 +30,7 @@
       const f = G(sp.dir), n = G(sp.palm).projectOnPlane(f).normalize();
       const fb = (fin, j) => R.finger(model, s, fin, j);
       aim(hnd, fb("middle", 1), f);
-      twist(hnd, f, wpos(fb("pinky", 1)).sub(wpos(fb("index", 1))), new THREE.Vector3().crossVectors(f, n).multiplyScalar(-1));
+      twist(hnd, f, wpos(fb("pinky", 1)).sub(wpos(fb("index", 1))), new THREE.Vector3().crossVectors(f, n).multiplyScalar(x));   // index to pinky runs the other way on the left hand (it used -1 for both, which turned every left palm over)
       const axis = new THREE.Vector3().crossVectors(f, n).normalize();
       for (const fin of ["index", "middle", "ring", "pinky"]) {
         let ang = 0;
@@ -142,13 +142,13 @@
     for (let i = 0; i < p.count; i++) out[i] = v.fromBufferAttribute(p, i).applyMatrix4(o.bindMatrix).y;
     return (g.userData.bindY = out);
   }
-  function loft(rings, segs = 28) {   // rings: [{c: center, rx, rz, f: fold}] -> one tube; cross sections lie across the path, x stays sideways
+  function loft(rings, segs = 28) {   // rings: [{c: center, rx, rz, f: fold, v: valley}] -> one tube; cross sections lie across the path, x stays sideways; a valley pulls the middle in front and behind, so the cloth follows two legs
     const curve = new THREE.CatmullRomCurve3(rings.map(r => r.c)), K = 5, N = (rings.length - 1) * K, pos = [], idx = [];
     for (let j = 0; j <= N; j++) {
       const u = j / N, i = Math.min(rings.length - 2, Math.floor(j / K)), k = (j - i * K) / K, e = k * k * (3 - 2 * k), A = rings[i], B = rings[i + 1];
       const c = curve.getPoint(u), t = curve.getTangent(u), side = V(1, 0, 0), nrm = new THREE.Vector3().crossVectors(side, t).normalize();
-      const rx = A.rx + (B.rx - A.rx) * e, rz = A.rz + (B.rz - A.rz) * e, f = (A.f || 0) + ((B.f || 0) - (A.f || 0)) * e;
-      for (let q = 0; q <= segs; q++) { const a = q / segs * Math.PI * 2, w = 1 + f * Math.sin(a * 9 + j * 0.15) ;
+      const rx = A.rx + (B.rx - A.rx) * e, rz = A.rz + (B.rz - A.rz) * e, f = (A.f || 0) + ((B.f || 0) - (A.f || 0)) * e, v = (A.v || 0) + ((B.v || 0) - (A.v || 0)) * e;
+      for (let q = 0; q <= segs; q++) { const a = q / segs * Math.PI * 2, w = (1 + f * Math.sin(a * 9 + j * 0.15)) * (1 - v * (Math.exp(-(((a - Math.PI / 2) / 0.5) ** 2)) + Math.exp(-(((a - 1.5 * Math.PI) / 0.5) ** 2))));
         pos.push(c.x + side.x * Math.cos(a) * rx * w + nrm.x * Math.sin(a) * rz * w, c.y + side.y * Math.cos(a) * rx * w + nrm.y * Math.sin(a) * rz * w, c.z + side.z * Math.cos(a) * rx * w + nrm.z * Math.sin(a) * rz * w); }
     }
     for (let j = 0; j < N; j++) for (let q = 0; q < segs; q++) { const a = j * (segs + 1) + q, b = a + segs + 1; idx.push(a, b, a + 1, b, b + 1, a + 1); }
@@ -161,14 +161,14 @@
     const rings = [
       { c: V(P.x, P.y + 0.17, P.z - 0.01), rx: 0.135, rz: 0.1 },
       { c: V(P.x, P.y + 0.03, P.z - 0.02), rx: 0.19, rz: 0.15 },
-      { c: hip.clone().add(V(0, 0.0, 0.1)), rx: 0.2, rz: 0.115 },
-      { c: hip.clone().lerp(knee, 0.55).add(V(0, 0.025, 0)), rx: half + 0.15, rz: 0.095 },
-      { c: knee.clone().add(V(0, 0.03, 0.05)), rx: half + 0.105, rz: 0.085 } ];
-    if (long) rings.push({ c: knee.clone().add(V(0, -0.13, 0.12)), rx: half + 0.13, rz: 0.13, f: 0.03 },
-                         { c: V(knee.x, 0.02, (fl.z + fr.z) / 2 + 0.1), rx: half + 0.23, rz: 0.25, f: 0.06 });
-    else rings.push({ c: knee.clone().add(V(0, -0.17, 0.09)), rx: half + 0.12, rz: 0.11, f: 0.035 });
-    const me = new THREE.Mesh(loft(rings), new THREE.MeshStandardMaterial({ ...CLOTH, roughness: long ? 0.5 : 0.65, ...(color ? { color: new THREE.Color(color).convertSRGBToLinear() } : {}) }));   // the long dress has a soft satin sheen
-    me.material.envMapIntensity = long ? 0.45 : 0.25; me.name = long ? "Avondjurk" : "Rok"; parent.add(me);
+      { c: hip.clone().add(V(0, 0.0, 0.1)), rx: 0.2, rz: 0.115, v: 0.08 },
+      { c: hip.clone().lerp(knee, 0.55).add(V(0, 0.02, 0)), rx: half + 0.13, rz: 0.09, v: 0.3 },
+      { c: knee.clone().add(V(0, 0.03, 0.05)), rx: half + 0.1, rz: 0.085, v: 0.3 } ];
+    if (long) rings.push({ c: knee.clone().add(V(0, -0.15, 0.075)), rx: half + 0.11, rz: 0.1, f: 0.025, v: 0.24 },   // from the knee the dress falls nearly straight to the floor
+                         { c: V(knee.x, 0.02, knee.z + 0.085), rx: half + 0.15, rz: 0.15, f: 0.045, v: 0.12 });
+    else rings.push({ c: knee.clone().add(V(0, -0.17, 0.09)), rx: half + 0.12, rz: 0.11, f: 0.035, v: 0.2 });
+    const me = new THREE.Mesh(loft(rings), new THREE.MeshStandardMaterial({ ...CLOTH, roughness: long ? 0.66 : 0.68, ...(color ? { color: new THREE.Color(color).convertSRGBToLinear() } : {}) }));   // the long dress has a soft satin sheen
+    me.material.envMapIntensity = long ? 0.3 : 0.25; me.name = long ? "Avondjurk" : "Rok"; parent.add(me);
   }
   function tailsFor(m, h, parent) {   // the two tails of the tailcoat, through the gap under the chair back and down behind the seat
     const pos = [], idx = [];
@@ -180,6 +180,23 @@
     }
     const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals();
     const me = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ ...CLOTH, roughness: 0.75 })); me.material.envMapIntensity = 0.2; me.name = "Slippen"; parent.add(me);
+  }
+  // Where the mouth, chin and shoulders of a seated musician really are, in the musician's frame (m, facing +z). Written by the bake to
+  // bron/assets/anatomy.json and read by body.js, which puts each instrument against its own player's mouth or jaw (route: the person does not move, the instrument does).
+  function faceInHead(body, m) {   // rest pose: nose tip (the face's most forward head vertex) -> mouth and chin, stored in the Head bone's frame
+    refresh(body); const head = body.getObjectByName("Bip01_Head"), p = V(0, 0, 0); let nose = null, best = -1e9;
+    body.traverse(o => { if (!o.isSkinnedMesh) return; const g = o.geometry, mats = [].concat(o.material), idx = g.index;
+      const groups = g.groups.length ? g.groups : [{ start: 0, count: idx ? idx.count : g.attributes.position.count, materialIndex: 0 }];
+      for (const gr of groups) { const mt = mats[gr.materialIndex]; if (!mt || /opacity|glasses/.test(mt.name)) continue;
+        for (let k = gr.start; k < gr.start + gr.count; k += 7) { const i = idx ? idx.getX(k) : k; if (dominant(o, i) !== "Bip01_Head") continue;
+          skinned(o, i, p); const z = m.worldToLocal(p.clone()).z; if (z > best) { best = z; nose = p.clone(); } } } });
+    const n = m.worldToLocal(nose.clone()), toHead = q => head.worldToLocal(m.localToWorld(q));
+    return { mouth: toHead(n.clone().add(V(0, -0.036, -0.012))), chin: toHead(n.clone().add(V(0, -0.078, -0.022))) };
+  }
+  function anatomyOf(body, m, face) {
+    const loc = o => m.worldToLocal(wpos(o)), r3 = q => [q.x, q.y, q.z].map(x => Math.round(x * 1000) / 1000), head = body.getObjectByName("Bip01_Head");
+    return { mouth: r3(m.worldToLocal(head.localToWorld(face.mouth.clone()))), chin: r3(m.worldToLocal(head.localToWorld(face.chin.clone()))),
+      lsh: r3(loc(body.getObjectByName("Bip01_L_UpperArm"))), rsh: r3(loc(body.getObjectByName("Bip01_R_UpperArm"))), neck: r3(loc(body.getObjectByName("Bip01_Neck"))) };
   }
   let womenSeen = 0;
   // audience and rehearsal colours (sRGB): dark evening wear (charcoal, navy, deep brown, black, a little deep garnet); the rehearsal in dark charcoal
@@ -202,7 +219,9 @@
     body.scale.multiplyScalar(0.94 + ((vi * 37) % 13) / 13 * 0.12);   // a little variety in build
     let sm0 = null; body.traverse(o => { if (o.isSkinnedMesh && !sm0) sm0 = o; });
     const swapped = look.h && HEADS[look.h] ? headMesh(look.h, sm0) : null;
+    const face = c.outfit === "publiek" ? null : faceInHead(body, m);
     poseSeated(body, m, h, pose, A); refresh(body);
+    if (face) c.anat = anatomyOf(body, m, face);
     const baked = new THREE.Group(); baked.name = "Lichaam"; m.add(baked); m.updateWorldMatrix(true, true);
     const inv = m.matrixWorld.clone().invert();
     const bodyPre = [].concat(sm0.material)[0].name.split("_")[0];
@@ -267,5 +286,5 @@
       const glb = await new Promise((res, rej) => new THREE.GLTFExporter().parse(set.map(p => p[0]), res, rej, { binary: true, onlyVisible: false }));
       files[list] = { glb: b64(glb), textures: [...tex].sort(), people: set.length };
     }
-    return { files, textures: [...used].sort(), people: people.length, meshes: meshCount, triangles };
+    return { files, textures: [...used].sort(), people: people.length, meshes: meshCount, triangles, anatomy: MUS.map(c => c.anat) };
   })();

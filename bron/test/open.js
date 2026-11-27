@@ -12,6 +12,7 @@ exports.open = async (p, target) => {
   if (fs.existsSync(local)) await p.route(/cdn\.jsdelivr\.net\/npm\/three@0\.147\.0\/(.*)/, r => { const rel = r.request().url().split('three@0.147.0/')[1]; r.fulfill({ body: fs.readFileSync(path.join(local, rel)), contentType: 'application/javascript' }); });
   await p.route(/fonts\./, r => r.abort());
   if (process.env.NOPEOPLE) await p.addInitScript(() => { window.__noPeople = true; });
+  if (process.env.INIT) await p.addInitScript(process.env.INIT);   // e.g. INIT='window.__conductorStyle = "tails"' for a proof
   const t = target || SITE;
   return p.goto(/^(https?|file):/.test(t) ? t : pathToFileURL(path.resolve(t)).href, { timeout: 0 });
 };
