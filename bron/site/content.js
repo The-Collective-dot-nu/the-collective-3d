@@ -74,7 +74,7 @@
 
   // INSTRUMENTS: in the part panel of the problems stop (Kai), the methods we use for that part, each linked to where it plays in a small picture.
   // Per part key (r and c share "rc"): stages of the picture and instruments { id (its Backstage text is "i-<id>"), n, st, w = what it does (public) }. How it plays in the framework is behind the Backstage pass.
-  const INSTRUMENTS_TEXT = { label: "The instruments we play", lead: "Every method is an instrument. Alone it plays a solo; in the framework it takes its part.", hint: "Point at an instrument to see where it plays." };
+  const INSTRUMENTS_TEXT = { label: "The repertoire", lead: "The methods we play from. Alone a fragment; in the framework, one piece.", hint: "Point at a method to see where it plays." };
   const INSTRUMENTS = {"p": {"stages": [{"k": "ambition","name": "Ambition"},
     {"k": "goals","name": "Goals"},
     {"k": "initiatives","name": "Initiatives"},
@@ -182,7 +182,7 @@
   // BACKSTAGE: the "learn more" behind a password, in every problem and framework-part panel. The teaser is public; the full texts are
   // encrypted in site/backstage.json (bron/backstage/encrypt.py; the readable texts never go in the repo)
   const BACKSTAGE = { label: "Backstage pass", teaser: "Lorem ipsum dolor sit amet: behind the curtain, how we would tackle this with you, step by step. Sed posuere consectetur est at lobortis.",
-    prompt: "Password", unlock: "Let me in", wrong: "That is not the pass. Try again.", nocrypto: "The backstage pass only works on the secure (https) address.", url: "__BACKSTAGE__" };
+    lock: "Enter the password to read how each method plays in the framework, and how we would tackle this with you.", prompt: "Password", unlock: "Let me in", wrong: "That is not the pass. Try again.", nocrypto: "The backstage pass only works on the secure (https) address.", url: "__BACKSTAGE__" };
 
   const LABELS = {   // headings inside the side panels
     wrong: "Where it goes wrong", solve: "How the framework solves it",

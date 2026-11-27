@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=Figtree:wght@400;500&family=Barlow+Condensed:wght@700&display=swap">
-<link rel="stylesheet" href="site/styles.css?v=27a428a6">
+<link rel="stylesheet" href="site/styles.css?v=d94f3216">
 </head>
 <body class="is-loading">
 <main class="stage" id="stage" aria-label="The Collective: when an organisation plays as one">
@@ -1666,7 +1666,7 @@
 
   // INSTRUMENTS: in the part panel of the problems stop (Kai), the methods we use for that part, each linked to where it plays in a small picture.
   // Per part key (r and c share "rc"): stages of the picture and instruments { id (its Backstage text is "i-<id>"), n, st, w = what it does (public) }. How it plays in the framework is behind the Backstage pass.
-  const INSTRUMENTS_TEXT = { label: "The instruments we play", lead: "Every method is an instrument. Alone it plays a solo; in the framework it takes its part.", hint: "Point at an instrument to see where it plays." };
+  const INSTRUMENTS_TEXT = { label: "The repertoire", lead: "The methods we play from. Alone a fragment; in the framework, one piece.", hint: "Point at a method to see where it plays." };
   const INSTRUMENTS = {"p": {"stages": [{"k": "ambition","name": "Ambition"},
     {"k": "goals","name": "Goals"},
     {"k": "initiatives","name": "Initiatives"},
@@ -1774,7 +1774,7 @@
   // BACKSTAGE: the "learn more" behind a password, in every problem and framework-part panel. The teaser is public; the full texts are
   // encrypted in site/backstage.json (bron/backstage/encrypt.py; the readable texts never go in the repo)
   const BACKSTAGE = { label: "Backstage pass", teaser: "Lorem ipsum dolor sit amet: behind the curtain, how we would tackle this with you, step by step. Sed posuere consectetur est at lobortis.",
-    prompt: "Password", unlock: "Let me in", wrong: "That is not the pass. Try again.", nocrypto: "The backstage pass only works on the secure (https) address.", url: "site/backstage.json?v=c9ba9222" };
+    lock: "Enter the password to read how each method plays in the framework, and how we would tackle this with you.", prompt: "Password", unlock: "Let me in", wrong: "That is not the pass. Try again.", nocrypto: "The backstage pass only works on the secure (https) address.", url: "site/backstage.json?v=c9ba9222" };
 
   const LABELS = {   // headings inside the side panels
     wrong: "Where it goes wrong", solve: "How the framework solves it",
@@ -1968,12 +1968,12 @@
     const band = (d, k, l, sub) => { const hw = Math.sqrt(R * R - (Math.abs(d) + 32) ** 2);
       return `<g class="k" data-k="${k}">${pill(CX - hw, CY + d - 30, 2 * hw, 60)}<text class="lab band" x="${(CX - hw + 26).toFixed(1)}" y="${CY + d - 6}">${l.toUpperCase()}</text><text class="sub" x="${(CX - hw + 26).toFixed(1)}" y="${CY + d + 12}">${sub}</text></g>`; };   // label and sub centred in the band as a block
     const SPAN = 104 + 30;   // Run and Change reach from the top of Plan to the bottom of Means, so their labels line up
-    const col = (dx, k, l) => { const hh = SPAN;
-      return `<g class="k" data-k="${k}">${pill(CX + dx - 28, CY - hh, 56, 2 * hh)}<text class="lab" x="${CX + dx}" y="${(CY - hh - 10).toFixed(1)}" text-anchor="middle">${l.toUpperCase()}</text></g>`; };   // RUN and CHANGE only: no text down the columns
+    const col = (dx, k, l, sub) => { const hh = SPAN;
+      return `<g class="k" data-k="${k}">${pill(CX + dx - 28, CY - hh, 56, 2 * hh)}<text class="lab" x="${CX + dx}" y="${(CY - hh - 10).toFixed(1)}" text-anchor="middle">${l.toUpperCase()}</text><text class="sub sub--col" x="${CX + dx}" y="${CY}" transform="rotate(-90 ${CX + dx} ${CY})" text-anchor="middle" dominant-baseline="central">${sub}</text></g>`; };   // RUN and CHANGE: the sub runs up the column, italic (Kai)
     const RO = 228, a = 0.2;   // the arrow ends just before its start: almost a full circle
     fwEl.innerHTML = `<defs><marker id="fwArrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="tip" d="M0 0L10 5L0 10z"/></marker></defs>
       <circle class="ring" cx="${CX}" cy="${CY}" r="205"/>`
-      + band(-104, "p", "Plan", "the piece") + band(0, "b", "Blueprint", "the score") + band(104, "m", "Means", "the orchestra") + col(40, "r", "Run") + col(110, "c", "Change")
+      + band(-104, "p", "Plan", "the piece") + band(0, "b", "Blueprint", "the score") + band(104, "m", "Means", "the orchestra") + col(40, "r", "Run", "tonight's concert") + col(110, "c", "Change", "next season's symphony")
       + `<g class="k" data-k="o"><path d="M ${CX} ${CY - RO} A ${RO} ${RO} 0 1 1 ${(CX - RO * Math.sin(a)).toFixed(1)} ${(CY - RO * Math.cos(a)).toFixed(1)}" class="arc" pathLength="1" marker-end="url(#fwArrow)"/>
         <text class="lab lab--big" x="${CX}" y="${CY + RO + 30}" text-anchor="middle">ORCHESTRATION</text><text class="sub" x="${CX}" y="${CY + RO + 50}" text-anchor="middle">the conductor</text></g>`;
   }
@@ -2056,7 +2056,7 @@
     for (const k in panels) panels[k].classList.toggle("is-on", S.panel === k);
     caption.classList.toggle("is-on", !!S.caption);
     if (S.caption) capText.textContent = S.caption;
-    problems.classList.toggle("is-on", !!S.problems); if (!S.problems && problems.scrollTop) { problems.scrollTop = 0; setProblemsScroll(); } if (!S.problems) closeDrawers();
+    problems.classList.toggle("is-on", !!S.problems); if (!S.problems && problems.scrollTop) { problems.scrollTop = 0; setProblemsScroll(); } if (!S.problems) { closeDoor(); closeDrawers(); }
     showLines(S);
     dimsLate.classList.toggle("is-late", !!S.late); $("#dimsOrgC").classList.toggle("is-late", !!S.late);
     fwEl.classList.toggle("is-on", !!S.fw); fwEl.classList.toggle("is-side", S.fw === "side"); fwEl.classList.toggle("is-coll", S.fw === "coll");
@@ -2247,7 +2247,7 @@
   /* ---------- input: wheel, keys, swipe, timeline ---------- */
   const WHEEL_REST = 0.45; let wheelQuiet = 0, wheelAcc = 0;
   addEventListener("wheel", e => {
-    if (e.target.closest && e.target.closest("[data-drawer]")) return;   // an open side panel scrolls itself
+    if (e.target.closest && e.target.closest("[data-drawer], .door")) return;   // an open side panel (or Backstage) scrolls itself
         e.preventDefault();
     const now = clock.getElapsedTime(), quiet = now - wheelQuiet; wheelQuiet = now;
     if ((anim && anim.k < 0.85) || quiet < WHEEL_REST && wheelAcc === 0) return;
@@ -2255,6 +2255,8 @@
     step(Math.sign(wheelAcc)); wheelAcc = 0;
   }, { passive: false });
   addEventListener("keydown", e => {
+    if (e.key === "Escape" && door.classList.contains("is-on")) { closeDoor(); return; }
+    if (e.target.closest && e.target.closest(".door")) return;   // inside Backstage, keys type and scroll
     if (e.key === "Escape" && (openProblem >= 0 || openPart)) { closeDrawers(true); return; }
     if (e.target.closest && e.target.closest("[data-drawer], input")) return;   // arrows and space scroll the open side panel, and type in the Backstage password
     if (e.target.closest && e.target.closest("button") && (e.key === " " || e.key === "Enter")) return;
@@ -2265,8 +2267,8 @@
   });
   let touchY = null;
   stage.addEventListener("touchstart", e => { touchY = e.touches[0].clientY; }, { passive: true });
-  stage.addEventListener("touchmove", e => { if (!e.target.closest(".problems, .coll__page, [data-drawer]")) e.preventDefault(); }, { passive: false });
-  stage.addEventListener("touchend", e => { if (touchY === null) return; if (e.target.closest("[data-drawer]")) { touchY = null; return; } for (const sel of [".coll__page", ".problems"]) { const el = e.target.closest(sel); if (el && el.scrollHeight > el.clientHeight + 4) { touchY = null; return; } } const dy = touchY - e.changedTouches[0].clientY; touchY = null; if (Math.abs(dy) > 40) step(Math.sign(dy)); });   // a list that scrolls (About, problems on phones) is scrolled, not swiped away
+  stage.addEventListener("touchmove", e => { if (!e.target.closest(".problems, .coll__page, [data-drawer], .door")) e.preventDefault(); }, { passive: false });
+  stage.addEventListener("touchend", e => { if (touchY === null) return; if (e.target.closest("[data-drawer], .door")) { touchY = null; return; } for (const sel of [".coll__page", ".problems"]) { const el = e.target.closest(sel); if (el && el.scrollHeight > el.clientHeight + 4) { touchY = null; return; } } const dy = touchY - e.changedTouches[0].clientY; touchY = null; if (Math.abs(dy) > 40) step(Math.sign(dy)); });   // a list that scrolls (About, problems on phones) is scrolled, not swiped away
   const segBtns = SEGS.map((g, n) => { const b = document.createElement("button");
     b.type = "button"; b.className = "timeline__seg"; b.dataset.timelineSeg = n; b.tabIndex = -1;
     b.setAttribute("aria-label", `${STORY.goTo} ${STOPS[g.first].name}`);
@@ -2293,10 +2295,10 @@
   const section = (label, html) => `<h3 class="drawer__h">${esc(label)}</h3>${html}`;
   function problemHTML(n) { const P = PROBLEMS[n];   // the title is the recognition; the figure beside it lights the parts and opens them
     return `<h2 class="drawer__title">${esc(P.line)}</h2>`
-      + section(LABELS.wrong, `<p class="drawer__text">${esc(P.wrong)}</p>`) + section(LABELS.solve, `<p class="drawer__text">${esc(P.solve)}</p>`) + backstageHTML(P.id); }
+      + section(LABELS.wrong, `<p class="drawer__text">${esc(P.wrong)}</p>`) + section(LABELS.solve, `<p class="drawer__text">${esc(P.solve)}</p>`) + doorHTML("problem", n); }
   function partHTML(k) { const T = PARTS[k];   // the problems it helps solve light up in the list on the left, not here (Kai: they stood there twice)
     return `<p class="drawer__kicker">${esc(T.name)} · ${esc(T.sub)}</p><h2 class="drawer__title">${esc(T.title)}</h2><p class="drawer__question">${esc(T.question)}</p><p class="drawer__text">${esc(T.text)}</p>`
-      + section(LABELS.org, `<p class="drawer__text">${esc(T.org)}</p>`) + instHTML(k) + backstageHTML(k); }
+      + section(LABELS.org, `<p class="drawer__text">${esc(T.org)}</p>`) + doorHTML("part", k); }
   /* ---------- Backstage pass: a teaser, then the full text after the password (decrypted here; the texts are encrypted in site/backstage.json) ---------- */
   const bs = { file: null, key: null };
   const b64 = t => Uint8Array.from(atob(t), c => c.charCodeAt(0));
@@ -2318,7 +2320,7 @@
     const T = await bsOpen(bs.key, box);
     body.innerHTML = `<h3 class="drawer__h">${esc(T.title)}</h3>` + T.paras.map(t => `<p class="drawer__text">${esc(t)}</p>`).join(""); el.classList.add("is-open");
   }
-  document.addEventListener("click", e => { const b = e.target.closest && e.target.closest(".backstage__open"); if (!b) return;
+  document.addEventListener("click", e => { const b = e.target.closest && e.target.closest(".backstage__open"); if (!b || b.dataset.door) return;
     const el = b.closest(".backstage"), body = el.querySelector(".backstage__body"), open = body.hidden; body.hidden = !open; b.setAttribute("aria-expanded", open);
     if (open && bs.key) { bsReveal(el); instDeep(); } else if (open) { const i = body.querySelector("input"); i && i.focus({ preventScroll: true }); } });
   document.addEventListener("submit", async e => { const form = e.target.closest && e.target.closest(".backstage__form"); if (!form) return; e.preventDefault();
@@ -2390,6 +2392,60 @@
     for (const box of document.querySelectorAll(".inst[data-sel]")) { const deep = box.querySelector(".inst__deep"), item = bs.file.items["i-" + box.dataset.sel]; if (!deep || !item || deep.dataset.i === box.dataset.sel) continue;
       deep.dataset.i = box.dataset.sel; try { const T = await bsOpen(bs.key, item); deep.innerHTML = T.paras.map(t => `<p class="drawer__text">${esc(t)}</p>`).join(""); } catch (err) {} }
   }
+  /* ---------- Backstage (Kai, option B): the card's button unfolds the card into a full-screen page; the repertoire is public, how it plays in the framework opens with the password ---------- */
+  const doorHTML = (kind, k) => `<div class="backstage"><button class="backstage__open" type="button" data-door="${kind}:${esc(k)}">${esc(BACKSTAGE.label)}<span aria-hidden="true">&rarr;</span></button></div>`;
+  const door = document.createElement("section"); door.className = "door glass"; door.setAttribute("aria-label", BACKSTAGE.label); door.tabIndex = -1; door.inert = true;
+  door.innerHTML = `<button class="close close--corner door__close" type="button" data-door-close aria-label="Close"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M1.5 1.5L10.5 10.5M10.5 1.5L1.5 10.5"/></svg></button><div class="door__body" data-door-body></div>`;
+  document.body.appendChild(door);
+  let doorFrom = null, doorRect = null, doorWhat = null;
+  const PART_TABS = ["p", "b", "m", "o", "r"], PART_TAB_NAME = { p: "Plan", b: "Blueprint", m: "Means", o: "Orchestration", r: "Run and Change" };
+  const lockHTML = () => bs.key ? "" : `<form class="door__lock backstage__form"><p class="drawer__h">${esc(BACKSTAGE.label)}</p><p class="drawer__text">${esc(BACKSTAGE.lock)}</p>
+    <div class="door__row"><input type="password" autocomplete="off" placeholder="${esc(BACKSTAGE.prompt)}" aria-label="${esc(BACKSTAGE.prompt)}"><button type="submit">${esc(BACKSTAGE.unlock)}</button></div><p class="backstage__msg" aria-live="polite"></p></form>`;
+  function doorFill(kind, k) {
+    doorWhat = [kind, k]; const body = door.querySelector("[data-door-body]");
+    if (kind === "part") { const key = INST_KEY[k], T = INSTRUMENTS[key], tabKey = k === "c" ? "r" : k;
+      body.innerHTML = `<p class="door__kicker">${esc(BACKSTAGE.label)} · ${esc(PART_TAB_NAME[tabKey])}</p>
+        <div class="door__tabs" role="tablist">${PART_TABS.map(t => `<button type="button" role="tab" class="door__tab" aria-selected="${t === tabKey}" data-door-tab="${t}">${esc(PART_TAB_NAME[t])}</button>`).join("")}</div>
+        <div class="inst door__grid" data-inst="${key}">
+          <div class="door__main"><h2 class="door__title">${esc(INSTRUMENTS_TEXT.label)}</h2><p class="inst__lead">${esc(INSTRUMENTS_TEXT.lead)}</p>
+            <svg class="inst__score" viewBox="0 0 400 236" aria-hidden="true">${instSVG(key)}</svg>
+            <div class="inst__chips">${T.instruments.map(x => `<button class="inst__chip" type="button" aria-pressed="false" data-i="${x.id}">${esc(x.n)}</button>`).join("")}</div></div>
+          <div class="door__side"><div class="inst__detail" aria-live="polite"><p class="inst__hint">${esc(INSTRUMENTS_TEXT.hint)}</p></div>${lockHTML()}<div class="door__part" data-door-text="${esc(k)}"></div></div>
+        </div>`;
+      const first = body.querySelector(".inst__chip"); first && first.click();
+    } else { const P = PROBLEMS[k];
+      body.innerHTML = `<p class="door__kicker">${esc(BACKSTAGE.label)}</p><div class="door__grid"><div class="door__main"><h2 class="door__title">${esc(P.line)}</h2><p class="drawer__text">${esc(BACKSTAGE.teaser)}</p></div>
+        <div class="door__side">${lockHTML()}<div class="door__part" data-door-text="${esc(P.id)}"></div></div></div>`; }
+    doorText();
+  }
+  async function doorText() {   // once in: the deeper text of the chosen method and the page's own backstage text
+    if (!bs.key || !bs.file) return; instDeep();
+    const el = door.querySelector("[data-door-text]"), item = el && bs.file.items[el.dataset.doorText]; if (!item) return;
+    try { const T = await bsOpen(bs.key, item); el.innerHTML = `<h3 class="drawer__h">${esc(T.title)}</h3>` + T.paras.map(t => `<p class="drawer__text">${esc(t)}</p>`).join(""); } catch (err) {}
+  }
+  const inset = r => `inset(${r.top}px ${innerWidth - r.right}px ${innerHeight - r.bottom}px ${r.left}px round 18px)`;
+  function openDoor(kind, k, btn) {
+    const card = btn.closest("[data-drawer]"); doorFrom = btn; doorRect = card ? card.getBoundingClientRect() : null;
+    clearTimeout(doorShut); door.classList.remove("is-closing"); doorFill(kind, k); door.inert = false; door.scrollTop = 0;
+    if (doorRect && !reduceMQ.matches) { door.style.transition = "none"; door.style.clipPath = inset(doorRect); door.classList.add("is-on"); door.offsetWidth; door.style.transition = ""; door.style.clipPath = "inset(0px 0px 0px 0px round 0px)"; }
+    else { door.style.clipPath = "none"; door.classList.add("is-on"); }
+    door.focus({ preventScroll: true });
+  }
+  let doorShut = 0;
+  function closeDoor() {
+    if (!door.classList.contains("is-on")) return;
+    const card = doorFrom && doorFrom.closest("[data-drawer]"), r = card && card.classList.contains("is-on") ? card.getBoundingClientRect() : doorRect;
+    if (r && !reduceMQ.matches) { door.style.clipPath = inset(r); door.classList.add("is-closing"); doorShut = setTimeout(() => { door.classList.remove("is-on", "is-closing"); door.style.clipPath = ""; }, 520); }
+    else door.classList.remove("is-on");
+    door.inert = true; if (doorFrom && doorFrom.isConnected) doorFrom.focus({ preventScroll: true }); doorFrom = null;
+  }
+  document.addEventListener("click", e => { const t = e.target.closest && e.target; if (!t) return;
+    const b = t.closest("[data-door]"); if (b) { const [kind, k] = b.dataset.door.split(":"); openDoor(kind, kind === "problem" ? +k : k, b); return; }
+    if (t.closest("[data-door-close]")) { closeDoor(); return; }
+    const tab = t.closest("[data-door-tab]"); if (tab) { doorFill("part", tab.dataset.doorTab); door.scrollTop = 0; } });
+  door.addEventListener("submit", async e => { const form = e.target.closest(".door__lock"); if (!form) return; e.preventDefault(); e.stopPropagation();
+    const msg = form.querySelector(".backstage__msg"), input = form.querySelector("input");
+    try { bs.key = await bsKey(input.value); form.remove(); doorText(); } catch (err) { msg.textContent = err.message === "nocrypto" ? BACKSTAGE.nocrypto : BACKSTAGE.wrong; input.select(); } });
   function showDrawer(kind, html) {
     const d = drawers[kind], other = drawers[kind === "problem" ? "part" : "problem"];
     if (!drawerFrom || !drawerFrom.isConnected) drawerFrom = document.activeElement;
@@ -2427,7 +2483,7 @@
     if (part) { const k = part.dataset.openPart || part.dataset.k; k === openPart ? closeDrawer("part") : openPartFn(k); return; }
     if (prob) { openProblemFn(+prob.dataset.openProblem); return; }
     if (close) { closeDrawer(close.closest("[data-drawer]").dataset.drawer); return; }
-    if (!e.target.closest("[data-drawer], [data-timeline], .meet, .brand")) closeDrawers(false);   // a click anywhere else closes them
+    if (!e.target.closest("[data-drawer], [data-timeline], .meet, .brand, .door")) closeDrawers(false);   // a click anywhere else closes them
   });
   let meetFrom = null;   // the stop the Meet button was pressed on; a click outside the page goes back there
   meetBtn.addEventListener("click", () => { if (document.body.classList.contains("is-loading")) return; if (!STOPS[at].coll) meetFrom = at; goTo(idx("c0")); });
