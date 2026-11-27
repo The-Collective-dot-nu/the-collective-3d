@@ -953,22 +953,27 @@
   { const ry = NEXT.board.rotY, [bx, bz] = NEXT.board.at, sx = Math.cos(ry), sz = -Math.sin(ry), fx = Math.sin(ry), fz = Math.cos(ry);
     const x = bx + sx * 1.15 + fx * 0.35, z = bz + sz * 1.15 + fz * 0.35; dir2.position.set(x, terrainH(x, z), z); dir2.rotation.y = ry - 0.4; }
   const rep = group("Repetitie", CHG);
-  NEXT.teams.forEach((team, ti) => {   // each team on an arc round one shared stand, the open side toward the camera
+  const rehearse = (parentG, part, x, z, ry) => {   // one rehearsal player on their chair, with instrument and stand-in body (baked later)
+    const gy = terrainH(x, z), m = group("Repetitie · " + part, parentG); m.userData.part = part; m.userData.count = 1;
+    const h = SEAT[part] || 0.46, v = variant(vi++);
+    const mir = new THREE.Group(); mir.name = "Gespiegeld"; mir.scale.x = -1; m.add(mir);
+    chairPart("Stoel", h, "plush", part === "piano").build(mir);
+    const ins = new Part("Instrument"); let pose;
+    if (RINSTR[part] || WIND[part]) { pose = (RINSTR[part] || WIND[part])(ins, h, anatomy(MUS.length, h)); ins.build(m); }
+    else { const hands = INSTR[part](ins, h); pose = poseFor(part, hands); ins.build(mir); }
+    const body = new Part("Lichaam"); seatedFigure(body, h, v, poseForV1(pose)); const stand = body.build(mir); stand.userData.standIn = true;
+    m.position.set(x, gy, z); m.rotation.y = ry;
+    MUS.push({ m, part, h, v, vi: vi - 1, pose, standIn: stand, outfit: "repetitie" }); return m; };
+  { const [px, pz] = NEXT.piano.at, pg = group("Piano", rep); pg.userData.count = 1;   // the piano in the middle, in front of the board, its player in profile to the camera
+    const m = rehearse(pg, "piano", px, pz, NEXT.piano.rotY);
+    standObj(pg, "Lessenaar · piano", [m.name], px + Math.sin(NEXT.piano.rotY) * 0.42, pz + Math.cos(NEXT.piano.rotY) * 0.42, m.position.y + 0.95, NEXT.piano.rotY + Math.PI, { h: 0.2, noPole: true }); }
+  NEXT.teams.forEach((team, ti) => {   // a team left and right of the piano, each on an arc round one shared stand, the open side toward the camera
     const [tx, tz] = team.at, gy = terrainH(tx, tz), n = team.players.length, back = Math.atan2(-NEXT.open[1], -NEXT.open[0]);
     const tg = group("Team " + (ti + 1), rep); tg.userData.count = n;
     team.players.forEach((part, i) => {
       const a = back + (i / (n - 1) - 0.5) * 2.5, R = NEXT.ring * (part === "cello" || part === "fagot" ? 1.08 : 1);
       const x = tx + Math.cos(a) * R, z = tz + Math.sin(a) * R;
-      const m = group("Repetitie · " + part, tg); m.userData.part = part; m.userData.count = 1;
-      const h = SEAT[part] || 0.46, v = variant(vi++);
-      const mir = new THREE.Group(); mir.name = "Gespiegeld"; mir.scale.x = -1; m.add(mir);
-      chairPart("Stoel", h, "plush", part === "piano").build(mir);
-      const ins = new Part("Instrument"); let pose;
-      if (RINSTR[part] || WIND[part]) { pose = (RINSTR[part] || WIND[part])(ins, h, anatomy(MUS.length, h)); ins.build(m); }
-      else { const hands = INSTR[part](ins, h); pose = poseFor(part, hands); ins.build(mir); }
-      const body = new Part("Lichaam"); seatedFigure(body, h, v, poseForV1(pose)); const stand = body.build(mir); stand.userData.standIn = true;
-      m.position.set(x, gy, z); m.rotation.y = Math.atan2(tx - x, tz - z);
-      MUS.push({ m, part, h, v, vi: vi - 1, pose, standIn: stand, outfit: "repetitie" });
+      rehearse(tg, part, x, z, Math.atan2(tx - x, tz - z));
     });
     const sx = tx - Math.cos(back) * 0.12, sz = tz - Math.sin(back) * 0.12;   // the shared stand, a little toward the open side, its page to the players
     standObj(tg, "Lessenaar · gedeeld", tg.children.map(c => c.name), sx, sz, gy, Math.atan2(Math.cos(back), Math.sin(back)), { w: 0.85 });

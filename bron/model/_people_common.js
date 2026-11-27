@@ -35,8 +35,8 @@
     scene.add(o); refresh(o);
     const box = new THREE.Box3().setFromObject(o), foot = o.getObjectByName("Bip01_L_Foot");
     o.position.y -= box.min.y; refresh(o);
-    const ankle = wpos(foot).y; o.removeFromParent();
-    return { tpl: o, ankle, R: RIG_RB };
+    const ankle = wpos(foot).y, knee = wpos(o.getObjectByName("Bip01_L_Calf")).y; o.removeFromParent();
+    return { tpl: o, ankle, knee, R: RIG_RB };
   }
   const SUIT = 0x111113, PANTS = SUIT;
   const nextFrame = () => new Promise(r => requestAnimationFrame(() => r()));
@@ -64,7 +64,8 @@
 
   /* ---------- the conductor: a live (skinned) model in the red coat, arms moving with the music ---------- */
   let conductor = null;
-  const CONDUCTOR_COAT = 0xCC4429;   // the coat skirt: the art direction's conductor red (#D9452B) a little deeper, to match the lit jacket texture (m005_body_coat)
+  const CONDUCTOR_STYLE = "coat";   // "coat": the red suit with one long coat to mid-calf; "tails": a red tailcoat (window.__conductorStyle overrides, for proofs)
+  const bodyMap = o => { let m = null; o.traverse(c => { if (c.isSkinnedMesh) [].concat(c.material).forEach(x => { if (!m && x.map && !/head|opacity/.test(x.name)) m = x.map; }); }); return m; };
   function conductorBody(T, parent) {   // the conductor figure in the red coat, one skinned mesh per material
     const body = THREE.SkeletonUtils.clone(T.conductor.tpl); body.name = "Persoon"; parent.add(body);
     const multi = []; body.traverse(o => { if (o.isSkinnedMesh) multi.push(o); });
@@ -77,16 +78,24 @@
         sm.position.copy(o.position); sm.quaternion.copy(o.quaternion); sm.scale.copy(o.scale); o.parent.add(sm); sm.bind(o.skeleton, o.bindMatrix); }
       o.removeFromParent(); });
     const b = n => body.getObjectByName(ue2rb(n));
-    { body.updateWorldMatrix(true, true); const pel = body.getObjectByName("Bip01_Pelvis"), pp = wpos(pel);   // the skirt of one long coat, from the waist to the ankles (art direction); it carries on from the jacket
-      const top = pp.y + 0.16, hem = T.conductor.ankle + 0.05, L = top - hem, prof = [[0.13, 0], [0.2, 0.04], [0.232, 0.11], [0.245, 0.25], [0.27, 0.55], [0.31, 0.9], [0.322, 1]];   // [radius, share of the length from the top]; starts inside the jacket, so no edge shows where they meet
-      const pts = prof.map(([r, f]) => new THREE.Vector2(r, -f * L)); pts.push(new THREE.Vector2(0.306, -L + 0.012));   // the hem turns in a little, so it reads as cloth with a thickness
-      const g = new THREE.LatheGeometry(pts, 64), gp = g.attributes.position;
-      for (let i = 0; i < gp.count; i++) {   // soft folds that deepen toward the hem, so it falls like cloth and not like a pillar
-        const x = gp.getX(i), y = gp.getY(i), z = gp.getZ(i), a = Math.atan2(z, x), f = Math.min(1, -y / L), k = 1 + f * f * (0.035 * Math.sin(a * 9 + 0.6) + 0.02 * Math.sin(a * 5 + 2.1));
-        gp.setXYZ(i, x * k, y, z * k * 0.8); }
-      g.computeVertexNormals();
-      const coat = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color: new THREE.Color(CONDUCTOR_COAT).convertSRGBToLinear(), roughness: 0.82, side: THREE.DoubleSide, envMapIntensity: 0.25 })); coat.name = "Jas";
-      coat.position.set(pp.x, top, pp.z); coat.castShadow = true; scene.add(coat); coat.updateMatrixWorld(); pel.attach(coat); }
+    { body.updateWorldMatrix(true, true); const pel = body.getObjectByName("Bip01_Pelvis"), pp = wpos(pel);   // the jacket carries on below the waist in the jacket's own cloth: a long coat (CONDUCTOR_STYLE "coat") or the two tails of a tailcoat ("tails")
+      const style = window.__conductorStyle || CONDUCTOR_STYLE, tails = style === "tails";
+      const top = pp.y + 0.16, hem = tails ? T.conductor.knee - 0.02 : T.conductor.ankle + 0.36, L = top - hem;   // the long coat ends at mid-calf, so a bit of trouser and the shoes show
+      const prof = [[0.13, 0], [0.2, 0.06], [0.228, 0.14], [0.238, 0.26], [0.25, 0.55], [0.275, 0.9], [0.282, 1]];   // [radius, share of the length from the top]; starts inside the jacket, so its hem lies over the coat and no seam shows
+      const pts = prof.map(([r, f]) => new THREE.Vector2(r, -f * L)); pts.push(new THREE.Vector2(0.27, -L + 0.012));   // the hem turns in a little, so it reads as cloth with a thickness
+      const parts = tails ? [[Math.PI - 1.25, 1.2], [Math.PI + 0.05, 1.2]] : [[0.17, Math.PI * 2 - 0.34]];   // [phiStart, phiLength], phi 0 = the front: the coat opens a little at the front, the tails hang at the back
+      const mat = new THREE.MeshStandardMaterial({ map: bodyMap(T.conductor.tpl), roughness: 0.82, side: THREE.DoubleSide, envMapIntensity: 0.25 });   // the jacket's own texture, so coat and jacket are one cloth in any light
+      parts.forEach(([p0, pl], n) => {
+        const g = new THREE.LatheGeometry(pts, tails ? 16 : 56, p0, pl), gp = g.attributes.position, uv = g.attributes.uv;
+        for (let i = 0; i < gp.count; i++) {   // soft folds that deepen toward the hem, so it falls like cloth and not like a pillar
+          const x = gp.getX(i), y = gp.getY(i), z = gp.getZ(i), a = Math.atan2(x, z), f = Math.min(1, -y / L), k = 1 + f * f * (0.03 * Math.sin(a * 9 + 0.6) + 0.018 * Math.sin(a * 5 + 2.1));
+          gp.setXYZ(i, x * k, y, z * k * 0.8);
+          uv.setXY(i, 0.44 + 0.12 * ((a + Math.PI) / (Math.PI * 2)), 1 - (0.12 + 0.2 * f)); }   // a plain patch of the jacket's back in the texture
+        if (tails) for (let i = 0; i < gp.count; i++) { const f = Math.min(1, -gp.getY(i) / L), x = gp.getX(i), z = gp.getZ(i), a = Math.atan2(x, z), mid = p0 + pl / 2;
+          const d = Math.atan2(Math.sin(a - mid), Math.cos(a - mid)) * (1 - 0.45 * f), r = 1.04 * Math.hypot(x, z / 0.8); gp.setXYZ(i, r * Math.sin(mid + d), gp.getY(i), r * Math.cos(mid + d) * 0.8); }   // tails: each narrows toward the knee
+        g.computeVertexNormals();
+        const coat = new THREE.Mesh(g, mat); coat.name = tails ? "Slip " + (n + 1) : "Jas";
+        coat.position.set(pp.x, top, pp.z); body.getWorldQuaternion(coat.quaternion); coat.castShadow = true; scene.add(coat); coat.updateMatrixWorld(); pel.attach(coat); }); }
     const rest = []; body.traverse(o => { if (o.isBone) rest.push([o, o.quaternion.clone()]); });
     return { body, b, rest };
   }

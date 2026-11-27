@@ -38,7 +38,7 @@ def heads():
     return out
 def data(assets, textures, hd): return "\n  const HEADS = " + json.dumps(hd) + ";\n  const ASSETS = " + json.dumps(assets) + ";\n  const TEXTURES = " + json.dumps(textures) + ";\n"
 # the conductors are still built in the browser (one live, one at the rehearsal): only their avatar and its textures stay in the page (Business_Male_01 = m005)
-CONDUCTOR_FBX, CONDUCTOR_TEX = ["Business_Male_01"], ["m005_body", "m005_body_coat", "m005_head", "m005_opacity"]
+CONDUCTOR_FBX, CONDUCTOR_TEX = ["Business_Male_01"], ["m005_body", "m005_body_red", "m005_head", "m005_opacity"]
 def body_js():   # the scene code, with where each musician's mouth and jaw are (from the bake), so body.js puts the instruments there
     f = os.path.join(ASSETS, "anatomy.json"); anat = open(f).read() if os.path.exists(f) else "[]"
     return "  const ANAT = " + anat + ";\n" + r(M, "body.js")
