@@ -2133,17 +2133,18 @@
     function setup() {
       ctx = new (window.AudioContext || window.webkitAudioContext)();
       for (const k in TRACKS) { const T = TRACKS[k], a = new Audio(); a.src = T.url; a.loop = true; a.preload = "auto"; a.crossOrigin = "anonymous";
-        T.el = a; T.gain = ctx.createGain(); T.gain.gain.value = 0; ctx.createMediaElementSource(a).connect(T.gain).connect(ctx.destination); }
+        T.el = a; T.gain = ctx.createGain(); T.gain.gain.value = 0; ctx.createMediaElementSource(a).connect(T.gain).connect(fx ? fx.bus : fxIn()); }
       TRACKS.show.el.addEventListener("timeupdate", () => { const e = TRACKS.show.el; if (e.currentTime > SHOW_END) e.currentTime = 0; });   // the file ends in 3 s of silence: loop before it
       fetch(TRACKS.next.url).then(r => r.arrayBuffer()).then(b => ctx.decodeAudioData(b)).then(buf => { scratchBuf = buf; }).catch(() => {});   // the scratch is cut from the start of the new song
     }
     const fade = (k, to, sec) => { const g = TRACKS[k].gain.gain, t = ctx.currentTime; g.cancelScheduledValues(t); g.setValueAtTime(g.value, t); g.linearRampToValueAtTime(to, t + sec); };
     function scratch() {   // forward, back, forward, back: short pieces of the record at changing speed, through a narrow band like a needle on vinyl
       if (!scratchBuf) return 0;
-      const len = Math.floor(0.22 * scratchBuf.sampleRate), rev = ctx.createBuffer(scratchBuf.numberOfChannels, len, scratchBuf.sampleRate), fwd = ctx.createBuffer(scratchBuf.numberOfChannels, len, scratchBuf.sampleRate);
+      const len = Math.floor(0.3 * scratchBuf.sampleRate), rev = ctx.createBuffer(scratchBuf.numberOfChannels, len, scratchBuf.sampleRate), fwd = ctx.createBuffer(scratchBuf.numberOfChannels, len, scratchBuf.sampleRate);
       for (let c = 0; c < scratchBuf.numberOfChannels; c++) { const o = Math.floor(NEXT_IN * scratchBuf.sampleRate), src = scratchBuf.getChannelData(c).subarray(o, o + len); fwd.copyToChannel(src, c); const r = new Float32Array(len); for (let i = 0; i < len; i++) r[i] = src[len - 1 - i]; rev.copyToChannel(r, c); }
-      const bp = ctx.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 1400; bp.Q.value = 0.8; const g = ctx.createGain(); g.gain.value = 0.9; bp.connect(g).connect(ctx.destination);
-      let t = ctx.currentTime + 0.02; const PARTS = [[fwd, 1.8, 0.11], [rev, 2.4, 0.08], [fwd, 2.0, 0.1], [rev, 2.6, 0.07], [fwd, 1.4, 0.12]];
+      const bp = ctx.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 1500; bp.Q.value = 0.6; const g = ctx.createGain(); g.gain.value = 1.15; bp.connect(g).connect(ctx.destination);
+      let t = ctx.currentTime + 0.45;   // after the tape stop of the old song (play): baby scratches, a fast chop, then one long rewind before the drop (Kai: longer, unmistakable)
+      const PARTS = [[fwd, 1.6, 0.14], [rev, 2.2, 0.1], [fwd, 1.8, 0.12], [rev, 2.6, 0.08], [fwd, 2.0, 0.1], [rev, 2.4, 0.09], [fwd, 2.6, 0.06], [rev, 2.6, 0.06], [fwd, 2.6, 0.06], [rev, 2.6, 0.06], [fwd, 1.4, 0.16], [rev, 3.2, 0.26]];
       for (const [b, rate, d] of PARTS) { const s = ctx.createBufferSource(); s.buffer = b; s.playbackRate.setValueAtTime(rate * 0.6, t); s.playbackRate.linearRampToValueAtTime(rate, t + d * 0.5); s.playbackRate.linearRampToValueAtTime(rate * 0.4, t + d);
         s.connect(bp); s.start(t); s.stop(t + d); t += d + 0.015; }
       return t - ctx.currentTime;
@@ -2168,23 +2169,61 @@
       TRACKS[k].el.play().catch(() => {});
     }
     function stopTrack(k) { if (k === "next" && nextSrc) { nextSrc.stop(); nextSrc = null; } TRACKS[k].el.pause(); }
+    function tapeStop(el) {   // the old record slows down under the hand, like a turntable switched off
+      el.preservesPitch = el.mozPreservesPitch = el.webkitPreservesPitch = false; const t0 = performance.now();
+      const id = setInterval(() => { const k = Math.min(1, (performance.now() - t0) / 550); el.playbackRate = Math.max(0.25, 1 - 0.75 * k * k); if (k >= 1) { clearInterval(id); setTimeout(() => { el.playbackRate = 1; }, 700); } }, 30);
+    }
+    // ---- sound design (Kai): one filter chain on the mix that follows the story; with one mixed recording it suggests sections by pitch range and left/right, wherever the song is
+    let fx = null, fxTimers = [], lastI = -1;
+    function fxIn() {
+      const c = ctx, n = { bus: c.createGain(), split: c.createChannelSplitter(2), dl: c.createDelay(0.1), dr: c.createDelay(0.1), gl: c.createGain(), gr: c.createGain(), merge: c.createChannelMerger(2),
+        hp: c.createBiquadFilter(), lp: c.createBiquadFilter(), peak: c.createBiquadFilter(), shelf: c.createBiquadFilter(), out: c.createGain(), lfo: c.createOscillator(), wob: c.createGain(), inv: c.createGain() };
+      n.hp.type = "highpass"; n.hp.frequency.value = 20; n.lp.type = "lowpass"; n.lp.frequency.value = 20000; n.peak.type = "peaking"; n.peak.Q.value = 0.9; n.peak.gain.value = 0; n.shelf.type = "highshelf"; n.shelf.frequency.value = 3500; n.shelf.gain.value = 0;
+      n.dl.delayTime.value = 0; n.dr.delayTime.value = 0; n.lfo.frequency.value = 0.3; n.wob.gain.value = 0; n.inv.gain.value = -1;
+      n.bus.connect(n.split); n.split.connect(n.dl, 0); n.split.connect(n.dr, 1); n.dl.connect(n.gl).connect(n.merge, 0, 0); n.dr.connect(n.gr).connect(n.merge, 0, 1);
+      n.merge.connect(n.hp).connect(n.lp).connect(n.peak).connect(n.shelf).connect(n.out).connect(c.destination);
+      n.lfo.connect(n.wob); n.wob.connect(n.dl.delayTime); n.wob.connect(n.inv).connect(n.dr.delayTime); n.lfo.start();
+      fx = n; return n.bus;
+    }
+    function shape(p = {}, tau = 0.5) {
+      if (!fx) return; const t = ctx.currentTime, P = Object.assign({ hp: 20, lp: 20000, pf: 1000, pg: 0, sg: 0, l: 1, r: 1, dl: 0, dr: 0, wob: 0, out: 1 }, p);
+      [[fx.hp.frequency, P.hp], [fx.lp.frequency, P.lp], [fx.peak.frequency, P.pf], [fx.peak.gain, P.pg], [fx.shelf.gain, P.sg], [fx.gl.gain, P.l], [fx.gr.gain, P.r], [fx.dl.delayTime, P.dl], [fx.dr.delayTime, P.dr], [fx.wob.gain, P.wob], [fx.out.gain, P.out]]
+        .forEach(([a, v]) => { a.cancelScheduledValues(t); a.setTargetAtTime(v, t, tau); });
+    }
+    const SECTION_SOUND = { Strijkers: { hp: 220, lp: 6000, pf: 1200, pg: 4, r: 0.5 }, Houtblazers: { hp: 450, lp: 8000, pf: 2200, pg: 5, l: 0.8, r: 0.8 }, Koper: { hp: 120, lp: 2600, pf: 650, pg: 5, l: 0.5 }, Slagwerk: { lp: 450, pf: 90, pg: 6 } };
+    function fxFor(i) {   // what the music does at each stop
+      fxTimers.forEach(clearTimeout); fxTimers = []; lastI = i; if (!fx) return;
+      const S = STOPS[i], later = (ms, p, tau) => fxTimers.push(setTimeout(() => shape(p, tau), ms));
+      switch (S.id) {
+        case "open": shape({ lp: 450 }, 0.05); later(1500, {}, 1.2); break;   // from far away, then the orchestra opens up
+        case "t2": shape({}); SECT.forEach((k, n) => later(((S.dur || 0) + 0.3 + n * SECTION_STEP) * 1000, SECTION_SOUND[k], 0.15)); later(((S.dur || 0) + 0.3 + 4 * SECTION_STEP) * 1000, {}, 0.3); break;   // Different roles: the sound follows the section that lights up
+        case "t3": shape({ sg: 6, pf: 350, pg: 2.5 }, 0.6); break;   // Different capabilities: warmer and brighter, like the glow
+        case "t4": shape({ sg: 4, pf: 350, pg: 2, dl: 0.016, dr: 0.006, wob: 0.005 }, 0.5); break;   // Different perspectives: each ear hears it differently
+        case "t6": shape({ out: 1.25 }, 0.25); later(900, {}, 1.0); break;   // One performance: everything back in place, with a swell
+        case "b3": shape({ r: 0.35, pf: 1500, pg: 3 }, 0.5); break;   // one melody line: left
+        case "b4": shape({ l: 0.35, pf: 1500, pg: 3 }, 0.5); later(2200, { pf: 1500, pg: 2 }, 0.8); break;   // the second line right, then both
+        case "question": shape({ lp: 2200, out: 0.9 }, 0.8); break;   // in the hall, among the audience
+        case "problems": shape({ lp: 3800, out: 0.75 }, 0.8); break;
+        default: shape({}, 0.6);
+      }
+    }
     function play(k) {
       if (!on || k === cur) return;
       const from = cur; cur = k; let delay = 0;
-      if (from) { fade(from, 0, from === "show" && k === "next" ? 0.15 : 1.0); setTimeout(() => { if (cur !== from) stopTrack(from); }, 1200); }
+      if (from) { const dj = from === "show" && k === "next"; fade(from, 0, dj ? 0.55 : 1.0); if (dj) tapeStop(TRACKS[from].el); setTimeout(() => { if (cur !== from) stopTrack(from); }, 1200); }
       if (from === "show" && k === "next") { delay = scratch(); if (!scratchBuf) TRACKS.next.el.currentTime = 0; else if (nextSrc) { nextSrc.stop(); nextSrc = null; } }   // the DJ moment: the new song from its start
       setTimeout(() => { if (cur !== k || !on) return; startTrack(k); fade(k, TRACKS[k].vol, from ? (delay ? 0.05 : 1.0) : 2.0); }, delay * 1000);
     }
     function setOn(v) {
       on = v; btn.setAttribute("aria-pressed", v); btn.setAttribute("aria-label", v ? "Sound off" : "Sound on"); btn.classList.toggle("is-on", v); ask.classList.remove("is-on");
-      if (v) { if (!ctx) setup(); ctx.resume(); cur = null; play(want); if (sourOn) { sourOn = false; setSour(true); } }
+      if (v) { if (!ctx) setup(); ctx.resume(); cur = null; play(want); if (lastI >= 0) fxFor(lastI); if (sourOn) { sourOn = false; setSour(true); } }
       else if (ctx) { for (const k in TRACKS) { fade(k, 0, 0.4); setTimeout(() => { if (!on) stopTrack(k); }, 450); } cur = null; }
     }
     btn.addEventListener("click", () => setOn(!on));
     $("[data-sound-yes]").addEventListener("click", () => setOn(true));
     $("[data-sound-no]").addEventListener("click", () => setOn(false));
     document.addEventListener("visibilitychange", () => { if (!ctx || !on) return; document.hidden ? ctx.suspend() : ctx.resume(); });   // quiet in a background tab
-    return { sync: i => { want = want0(i); play(want); setSour(!!STOPS[i].off); }, ask: () => { if (!on) ask.classList.add("is-on"); } };
+    return { sync: i => { want = want0(i); play(want); setSour(!!STOPS[i].off); lastI = i; if (on) fxFor(i); }, ask: () => { if (!on) ask.classList.add("is-on"); } };
   })();
   function setPaused(v) {   // only the screenshot scripts pause a sequence (__story.pause)
     paused = v;
