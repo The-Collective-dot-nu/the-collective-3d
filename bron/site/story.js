@@ -186,12 +186,12 @@
     const band = (d, k, l, sub) => { const hw = Math.sqrt(R * R - (Math.abs(d) + 32) ** 2);
       return `<g class="k" data-k="${k}">${pill(CX - hw, CY + d - 30, 2 * hw, 60)}<text class="lab band" x="${(CX - hw + 26).toFixed(1)}" y="${CY + d - 6}">${l.toUpperCase()}</text><text class="sub" x="${(CX - hw + 26).toFixed(1)}" y="${CY + d + 12}">${sub}</text></g>`; };   // label and sub centred in the band as a block
     const SPAN = 104 + 30;   // Run and Change reach from the top of Plan to the bottom of Means, so their labels line up
-    const col = (dx, k, l, sub) => { const hh = SPAN;
-      return `<g class="k" data-k="${k}">${pill(CX + dx - 28, CY - hh, 56, 2 * hh)}<text class="lab" x="${CX + dx}" y="${(CY - hh - 10).toFixed(1)}" text-anchor="middle">${l.toUpperCase()}</text><text class="sub sub--col" x="${CX + dx}" y="${CY}" transform="rotate(-90 ${CX + dx} ${CY})" text-anchor="middle" dominant-baseline="central">${sub}</text></g>`; };   // RUN and CHANGE: the sub runs up the column, italic (Kai)
+    const col = (dx, k, l) => { const hh = SPAN;
+      return `<g class="k" data-k="${k}">${pill(CX + dx - 28, CY - hh, 56, 2 * hh)}<text class="lab" x="${CX + dx}" y="${(CY - hh - 10).toFixed(1)}" text-anchor="middle">${l.toUpperCase()}</text></g>`; };   // RUN and CHANGE only: no text down the columns (Kai tried the sub up the column, 27 Nov: no)
     const RO = 228, a = 0.2;   // the arrow ends just before its start: almost a full circle
     fwEl.innerHTML = `<defs><marker id="fwArrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="tip" d="M0 0L10 5L0 10z"/></marker></defs>
       <circle class="ring" cx="${CX}" cy="${CY}" r="205"/>`
-      + band(-104, "p", "Plan", "the piece") + band(0, "b", "Blueprint", "the score") + band(104, "m", "Means", "the orchestra") + col(40, "r", "Run", "tonight's concert") + col(110, "c", "Change", "next season's symphony")
+      + band(-104, "p", "Plan", "the piece") + band(0, "b", "Blueprint", "the score") + band(104, "m", "Means", "the orchestra") + col(40, "r", "Run") + col(110, "c", "Change")
       + `<g class="k" data-k="o"><path d="M ${CX} ${CY - RO} A ${RO} ${RO} 0 1 1 ${(CX - RO * Math.sin(a)).toFixed(1)} ${(CY - RO * Math.cos(a)).toFixed(1)}" class="arc" pathLength="1" marker-end="url(#fwArrow)"/>
         <text class="lab lab--big" x="${CX}" y="${CY + RO + 30}" text-anchor="middle">ORCHESTRATION</text><text class="sub" x="${CX}" y="${CY + RO + 50}" text-anchor="middle">the conductor</text></g>`;
   }
@@ -327,15 +327,15 @@
   /* ---------- framework build-up: a new part's name appears big in the middle of the figure, then shrinks into its place and the part appears ---------- */
   let fwShown = new Set(), flyTimers = [];
   const FLY_NAME = { p: ["Plan", "the piece"], b: ["Blueprint", "the score"], m: ["Means", "the orchestra"], o: ["Orchestration", "the conductor"], r: ["Run", "tonight's concert"], c: ["Change", "next season's symphony"] };
-  function flyClear() { flyTimers.forEach(clearTimeout); flyTimers = []; fwEl.querySelectorAll(".fly").forEach(f => f.remove()); }
+  function flyClear() { flyTimers.forEach(clearTimeout); flyTimers = []; fwEl.querySelectorAll(".fly").forEach(f => f.remove()); fwEl.classList.remove("is-flying"); }
   function flyIn(g, done) {
     const [name, sub] = FLY_NAME[g.dataset.k], f = document.createElementNS("http://www.w3.org/2000/svg", "g"); f.setAttribute("class", "fly");
     f.innerHTML = `<text class="fly__name" x="320" y="262" text-anchor="middle">${name}</text><text class="fly__sub" x="320" y="300" text-anchor="middle">${sub}</text>`;
-    fwEl.appendChild(f);
+    fwEl.appendChild(f); fwEl.classList.add("is-flying");   // the rest dims and blurs while the name stands big (Kai: option C)
     const lab = g.querySelector(".lab"), t = lab.getBBox(), c = f.getBBox(), k = t.height / (c.height * 0.55);   // land on the part's own label
     const dx = t.x + t.width / 2 - 320, dy = t.y + t.height / 2 - 270;
     requestAnimationFrame(() => f.classList.add("is-in"));
-    flyTimers.push(setTimeout(() => { f.style.transform = `translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px) scale(${k.toFixed(3)})`; f.classList.add("is-out"); }, 1250),
+    flyTimers.push(setTimeout(() => { f.style.transform = `translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px) scale(${k.toFixed(3)})`; f.classList.add("is-out"); fwEl.classList.remove("is-flying"); }, 1250),
       setTimeout(done, 1490), setTimeout(() => f.remove(), 2050));   // the name stays big about 1.2 s (Kai: it went too fast)
   }
   /* ---------- music: asked once the site is ready; The Show Must Go On under the story, a scratch into The Next Episode when the view goes to Change ---------- */
